@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+
+
+    android:id="@+id/ScrollView01"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="none" >
+
+      <RelativeLayout
+          android:id="@+id/pref_relative"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="@string/common_pref"
+                android:id="@+id/textView21"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true" />
+            <View style="@style/Divider" android:layout_below="@id/textView21" />
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Отключить все уведомления?"
+                android:id="@+id/cb_notify_all"
+
+                android:checked="false"
+                android:layout_below="@+id/textView21"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                />
+
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/pref_period_spinner"
+                android:layout_below="@+id/cb_notify_all"
+                android:layout_toRightOf="@+id/textView19"
+                android:layout_toEndOf="@+id/textView19"
+                android:layout_alignBottom="@+id/textView19" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="@string/notif_period"
+                android:id="@+id/textView19"
+                android:layout_below="@+id/cb_notify_all"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true" />
+
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:id="@+id/relativeLayout"
+                android:layout_below="@+id/textView19">
+
+
+                  <GridLayout
+                      android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+
+                      android:id="@+id/pref_gl">
+                  </GridLayout>
+                  <View style="@style/Divider" android:padding="5dp"/>
+
+            </RelativeLayout>
+      </RelativeLayout>
+</ScrollView>

@@ -1,0 +1,50 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/pref_main_layout">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray" />
+
+    <FrameLayout
+        android:id="@+id/sample_content_fragment"
+        android:layout_weight="2"
+        android:layout_width="match_parent"
+        android:layout_height="0px" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="1"
+        android:id="@+id/linearLayout2"
+
+        android:orientation="horizontal"
+        android:padding="10dp"
+        android:layout_gravity="center_horizontal|bottom">
+        <Button
+            android:id="@+id/btn_cancelpref"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:onClick="CancelPref"
+            android:text="@string/cancel"
+            android:layout_margin="5dp"
+            android:layout_weight="0.5"
+            />
+
+        <Button
+            android:id="@+id/btn_savepref"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:onClick="SavePref"
+            android:text="@string/save"
+            android:layout_margin="5dp"
+            android:layout_weight="0.5"
+            />
+
+    </LinearLayout>
+
+</LinearLayout>

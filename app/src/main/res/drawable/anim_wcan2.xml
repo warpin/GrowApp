@@ -1,0 +1,11 @@
+<animation-list
+    android:oneshot="false"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+
+        android:drawable="@drawable/wcan2_on_1_64" android:duration="400" />
+    <item
+
+        android:drawable="@drawable/wcan2_on_2_64" android:duration="400" />
+    </animation-list>
+

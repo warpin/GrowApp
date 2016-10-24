@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GrowApp</string>
+    <string name="welcome_bg_desc">Добро пожаловать</string>
+    <string name="signin">Войти</string>
+    <string name="reg">Регистрация</string>
+    <string name="auth">Аутентификация</string>
+    <string name="username">Пользователь</string>
+    <string name="password">Пароль</string>
+    <string name="savelogin">Сохранить учетные данные?</string>
+    <string name="no_auth">Неверная пара логин/пароль</string>
+    <string name="success">Успешно</string>
+    <string name="d_ctrls">Загрузка списка контроллеров</string>
+    <string name="d_profile">Загрузка настроек</string>
+    <string name="no_data">Нет данных</string>
+    <string name="info">Справка</string>
+    <string name="answer">Ответ: </string>
+    <string name="action">Действие:</string>
+    <string name="wl">Датчик дыма:</string>
+    <string name="date">Дата:</string>
+    <string name="graphs">Графики</string>
+    <string name="pref">Настройки</string>
+    <string name="account">Мой аккаунт</string>
+    <string name="exit">Выход</string>
+    <string name="loadingsystemstate">Загрузка данных</string>
+    <string name="adddev">Добавление устройства</string>
+    <string name="min">Мин</string>
+    <string name="max">Макс</string>
+    <string name="notification">Уведомление</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="notif_period">Период уведомлений:</string>
+    <string name="min15">15 минут</string>
+    <string name="min30">30 минут</string>
+    <string name="hour">1 час</string>
+    <string name="hour2">2 часа</string>
+    <string name="temp">Температура воздуха, \u2103</string>
+    <string name="light_control">Состояние света</string>
+    <string name="hum">Влажность воздуха, %</string>
+    <string name="common_pref">Общие настройки</string>
+    <string name="temp_range">Диапазон температуры воздуха от 0 до 50</string>
+    <string name="pot1_hum">Влажность почвы №1, %</string>
+    <string name="pot2_hum">Влажность почвы №2, %</string>
+    <string name="water_level">Уровень дыма, %</string>
+    <string name="hum_range">Диапазон влажности водуха от 20 до 90</string>
+    <string name="pot1_range">Диапазон влажности почвы от 0 до 100</string>
+    <string name="pot2_range">Диапазон влажности почвы от 0 до 100</string>
+    <string name="water_range">Диапазон уровня задымленности от 0 до 100</string>
+    <string name="pumps_control">Состояние насосов</string>
+    <string name="relays_control">Состояние реле</string>
+    <string name="check_network">Проверка соединения</string>
+    <string name="auto_watering_pref">Автополив</string>
+    <string name="auto_watering_note_on">Автополив горшков включается при достижении критических значений влажности почвы, которые указаны в текущих полях. Включение/выключение автополива осуществляется в меню настройки устройства. Значение 0 соответствует ручному управлению.</string>
+    <string name="auto_watering_note_off">Автополив горшков выключен. Включение/выключение автополива осуществляется в меню настройки устройства. Значение 0 соответствует ручному управлению.</string>
+
+
+</resources>

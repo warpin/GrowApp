@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="pref_et_temp_min" type="id"/>
+    <item name="pref_et_temp_max" type="id"/>
+    <item name="pref_cb_temp_notify" type="id"/>
+
+    <item name="pref_et_hum_min" type="id"/>
+    <item name="pref_et_hum_max" type="id"/>
+    <item name="pref_cb_hum_notify" type="id"/>
+
+    <item name="pref_et_pot1_h_min" type="id"/>
+    <item name="pref_et_pot1_h_max" type="id"/>
+    <item name="pref_cb_pot1_h_notify" type="id"/>
+
+    <item name="pref_et_pot2_h_min" type="id"/>
+    <item name="pref_et_pot2_h_max" type="id"/>
+    <item name="pref_cb_pot2_h_notify" type="id"/>
+
+    <item name="pref_et_wl_min" type="id"/>
+    <item name="pref_et_wl_max" type="id"/>
+    <item name="pref_cb_wl_notify" type="id"/>
+
+    <item name="pref_cb_light_notify" type="id"/>
+
+    <item name="pref_cb_pumps_notify" type="id"/>
+
+    <item name="pref_cb_relays_notify" type="id"/>
+
+    <item name="pref_tv_auto_watering1" type="id"/>
+    <item name="pref_tv_auto_watering2" type="id"/>
+
+
+</resources>
