@@ -511,8 +511,8 @@ public class DataBroker  {
 
             URL url = new URL(myurl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(10000 /* milliseconds */);
-            conn.setConnectTimeout(15000 /* milliseconds */);
+            conn.setReadTimeout(3000 /* milliseconds */);
+            conn.setConnectTimeout(6000 /* milliseconds */);
             //conn.setRequestMethod("GET");
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");

@@ -21,6 +21,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -33,6 +43,8 @@ import cc.growapp.growapp.database.DatabaseHelper;
 import cc.growapp.growapp.database.Dev_profile;
 import cc.growapp.growapp.database.Preferences;
 import cc.growapp.growapp.database.SystemState;
+
+import static android.net.ConnectivityManager.TYPE_MOBILE;
 
 public class BackgroundService extends Service implements
         DataBroker.get_system_state.onGetSystemStateComplete
@@ -78,7 +90,7 @@ public class BackgroundService extends Service implements
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
-
+        nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
         int period = sPref.getInt("ServicePeriod",60);
         Log.d(LOG_TAG,String.valueOf(period));
@@ -94,25 +106,16 @@ public class BackgroundService extends Service implements
                 PendingIntent.getService(this, 0, new Intent(this, GrowAppService.class), PendingIntent.FLAG_UPDATE_CURRENT)
         );*/
 
-        // restart service every 30 seconds
-
-
-
-
-        nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-        ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        if (networkInfo != null && networkInfo.isConnected()) {
             try {
                 GetControllersListFromSQL();
-            } catch (Exception e){
+            } catch (Exception e) {
                 Log.d(LOG_TAG,"--- GetControllersListFromSQL() Failed ---");
             }
 
-        }
+
         stopSelf();
-        return START_REDELIVER_INTENT;
+        //return START_REDELIVER_INTENT;
+        return START_NOT_STICKY;
     }
 
 
@@ -123,13 +126,13 @@ public class BackgroundService extends Service implements
         PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
         Calendar cal = Calendar.getInstance();
         // start 30 seconds after boot completed
-        cal.add(Calendar.SECOND, 5);
-        final long REPEAT_TIME = 1000 * 5;
+        cal.add(Calendar.SECOND, 20);
+        final long REPEAT_TIME = 1000 * 20;
         // fetch every 30 seconds
         // InexactRepeating allows Android to optimize the energy consumption
         service.setInexactRepeating(AlarmManager.RTC_WAKEUP,
                 cal.getTimeInMillis(), REPEAT_TIME, pending);
-        long start_time = System.currentTimeMillis() + (5000);
+        long start_time = System.currentTimeMillis() + (20000);
         //Запишем в SP, для информации, когда запустится сервис
         Date resultdate = new Date(start_time);
         SharedPreferences.Editor ed = sPref.edit();
@@ -316,7 +319,7 @@ public class BackgroundService extends Service implements
                         if ((pot2_h > saved_pot2_h_max || pot2_h < saved_pot2_h_min) && saved_pot2_notify && pot2_control==1)
                             sendNotif(ctrl_id, "Влажность почвы 2 горшка " + pot2_h + "!");
                         if ((water_level > saved_wl_max || water_level < saved_wl_min) && saved_wl_notify && water_control==1)
-                            sendNotif(ctrl_id, "Уровень воды в канистре " + water_level + "!");
+                            sendNotif(ctrl_id, "Уровень дыма " + water_level + "!");
 
                         if (l_result != light_state && saved_l_notify && l_control==1) {
                             if (light_state == 1) sendNotif(ctrl_id, "Свет включился!");
@@ -362,6 +365,7 @@ public class BackgroundService extends Service implements
         }
 
     }
+
 }
 // ---------------------------------------------------------------------------------------------
 

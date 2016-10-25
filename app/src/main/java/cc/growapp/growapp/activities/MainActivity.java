@@ -950,35 +950,6 @@ public class MainActivity extends AppCompatActivity implements
         b.show();
     }
 
-    // Setup a recurring alarm every half hour
-    public void scheduleAlarm() {
-        sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
-        //int period = sPref.getInt("ServicePeriod",60);
-        int period=1;
-
-        // Construct an intent that will execute the AlarmReceiver
-        Intent intent = new Intent(getApplicationContext(), MyAlarmReceiver.class);
-        // Create a PendingIntent to be triggered when the alarm goes off
-        final PendingIntent pIntent = PendingIntent.getBroadcast(this, MyAlarmReceiver.REQUEST_CODE,
-                intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        // Setup periodic alarm every 5 seconds
-        long firstMillis = System.currentTimeMillis(); // alarm is set right away
-        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-        // First parameter is the type: ELAPSED_REALTIME, ELAPSED_REALTIME_WAKEUP, RTC_WAKEUP
-        // Interval can be INTERVAL_FIFTEEN_MINUTES, INTERVAL_HALF_HOUR, INTERVAL_HOUR, INTERVAL_DAY
-        /*alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis,
-                AlarmManager.INTERVAL_HALF_HOUR, pIntent);*/
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis,
-                period, pIntent);
-
-    }
-    public void cancelAlarm() {
-        Intent intent = new Intent(getApplicationContext(), MyAlarmReceiver.class);
-        final PendingIntent pIntent = PendingIntent.getBroadcast(this, MyAlarmReceiver.REQUEST_CODE,
-                intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
-        alarm.cancel(pIntent);
-    }
 
 
 

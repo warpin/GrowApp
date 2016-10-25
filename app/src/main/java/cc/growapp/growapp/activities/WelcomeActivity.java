@@ -90,7 +90,9 @@ public class WelcomeActivity extends AppCompatActivity implements
             if(check_network()){
                 proc.setText(getString(R.string.auth));
                 new DataBroker.authentication(this).execute(saved_user, saved_pass);
-            } else Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
+            }
         }
 
     }
@@ -117,7 +119,9 @@ public class WelcomeActivity extends AppCompatActivity implements
                 ctrls_processed=0;
 
                 new DataBroker.authentication(this).execute(session_user, session_pass);
-            } else Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
+            }
         } else  {
             // -------------------------------- Форма аутенфикации ----------------------------
             AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
@@ -274,7 +278,9 @@ public class WelcomeActivity extends AppCompatActivity implements
             if("0".equals(s)){
                 //pDialog.dismiss();
                 Toast.makeText(this,getString(R.string.no_auth), Toast.LENGTH_SHORT).show();
-            } else Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
+            }
 
         }
     }
