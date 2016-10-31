@@ -494,19 +494,6 @@ public class DataBroker  {
                 postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
             }
 
-
-
-            /*Iterator<Map.Entry<String, Object>> iterator = params.entrySet().iterator() ;
-            while(iterator.hasNext()){
-                Map.Entry<String, Object> param = iterator.next();
-                if (postData.length() != 0) postData.append('&');
-                postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
-                postData.append('=');
-                postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
-                iterator.remove();
-            }*/
-
-
             byte[] postDataBytes = postData.toString().getBytes("UTF-8");
 
             URL url = new URL(myurl);

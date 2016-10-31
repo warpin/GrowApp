@@ -203,8 +203,8 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
                     spinner = (Spinner) view.findViewById(R.id.pref_period_spinner);
 
                     periodSpinnerArray= new String[]{
+                            getString(R.string.min1),
                             getString(R.string.min15),
-                            getString(R.string.min30),
                             getString(R.string.hour),
                             getString(R.string.hour2)
                     };
@@ -230,13 +230,13 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
 
                     //Log.d("Tag Name", dev_profile.getTagName());
 
-                    int period = sPref.getInt("ServicePeriod",60);
+                    int period = sPref.getInt("ServicePeriod",900);
                     int index=0;
                     switch (period){
                         case 15:index=0;break;
-                        case 30:index=1;break;
-                        case 60:index=2;break;
-                        case 120:index=3;break;
+                        case 900:index=1;break;
+                        case 3600:index=2;break;
+                        case 7200:index=3;break;
                     }
                     spinner.setSelection(index);
 

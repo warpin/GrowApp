@@ -13,7 +13,10 @@ import android.widget.TextView;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.services.BackgroundService;
 
+
 public class InfoActivity extends AppCompatActivity  {
+
+
     private static final String LOG_TAG = "GrowApp";
     SharedPreferences sPref;
     public static final String APP_PREFERENCES = "GrowAppSettings";
@@ -26,6 +29,9 @@ public class InfoActivity extends AppCompatActivity  {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
 
@@ -39,13 +45,13 @@ public class InfoActivity extends AppCompatActivity  {
         TextView tv_serviceperiod = (TextView) findViewById(R.id.info_tv_period);
 
         sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
-        final String ServiceStartAt = sPref.getString("ServiceStartAt","");
-        int ServicePeriod = sPref.getInt("ServicePeriod", 60);
+        String ServiceStartAt = sPref.getString("ServiceStartAt","");
+        int ServicePeriod = sPref.getInt("ServicePeriod", 900);
         switch (ServicePeriod){
-            case 15:tv_serviceperiod.setText(getString(R.string.min15));break;
-            case 30:tv_serviceperiod.setText(getString(R.string.min30));break;
-            case 60:tv_serviceperiod.setText(getString(R.string.hour));break;
-            case 120:tv_serviceperiod.setText(getString(R.string.hour2));break;
+            case 60:tv_serviceperiod.setText(getString(R.string.min1));break;
+            case 900:tv_serviceperiod.setText(getString(R.string.min15));break;
+            case 3600:tv_serviceperiod.setText(getString(R.string.hour));break;
+            case 7200:tv_serviceperiod.setText(getString(R.string.hour2));break;
         }
 
         if(!ServiceStartAt.isEmpty())tv_servicetime.setText(ServiceStartAt);
@@ -63,7 +69,13 @@ public class InfoActivity extends AppCompatActivity  {
     }
 
     public void ServiceStart(View v){
+
         startService(new Intent(this, BackgroundService.class));
+    }
+
+    public void CrashApp(View v){
+
+        throw new RuntimeException("App is crashed");
     }
 
     @Override

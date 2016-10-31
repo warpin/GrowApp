@@ -1,6 +1,7 @@
 package cc.growapp.growapp.activities;
 
 import android.app.AlertDialog;
+import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -33,6 +34,11 @@ import cc.growapp.growapp.database.SystemState;
 import cc.growapp.growapp.JSONHandler;
 import cc.growapp.growapp.R;
 
+import org.acra.*;
+import org.acra.annotation.*;
+
+
+
 public class WelcomeActivity extends AppCompatActivity implements
         DataBroker.authentication.onAuthComplete,
         DataBroker.get_controllers.onGetCtrlsComplete,
@@ -40,6 +46,8 @@ public class WelcomeActivity extends AppCompatActivity implements
         DataBroker.get_dev_profile.onGetDevProfileComplete,
         DataBroker.get_system_state.onGetSystemStateComplete,
         DataBroker.registration.onRegistrationComplete {
+
+
 
     String LOG_TAG="GrowApp";
 
@@ -62,9 +70,11 @@ public class WelcomeActivity extends AppCompatActivity implements
 
     TextView proc;
 
+
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_welcome);
 
         if(getSupportActionBar()!=null){
@@ -418,5 +428,7 @@ public class WelcomeActivity extends AppCompatActivity implements
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
     }
+
+
 
 }

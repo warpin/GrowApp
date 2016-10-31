@@ -91,9 +91,6 @@ public class BackgroundService extends Service implements
     public int onStartCommand(Intent intent, int flags, int startId) {
 
         nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
-        int period = sPref.getInt("ServicePeriod",60);
-        Log.d(LOG_TAG,String.valueOf(period));
         Log.d(LOG_TAG, "Service created!");
         db = new DatabaseHelper(getApplicationContext());
 
@@ -121,21 +118,25 @@ public class BackgroundService extends Service implements
 
     @Override
     public void onDestroy() {
+        sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
+        int period = sPref.getInt("ServicePeriod",900);
+        Log.d(LOG_TAG,String.valueOf(period));
+        SharedPreferences.Editor ed = sPref.edit();
+
         AlarmManager service = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         //Intent i = new Intent(context, MyStartServiceReceiver.class);
         PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
         Calendar cal = Calendar.getInstance();
         // start 30 seconds after boot completed
-        cal.add(Calendar.SECOND, 20);
-        final long REPEAT_TIME = 1000 * 20;
+        cal.add(Calendar.SECOND, period);
+        final long REPEAT_TIME = 1000 * period;
         // fetch every 30 seconds
         // InexactRepeating allows Android to optimize the energy consumption
         service.setInexactRepeating(AlarmManager.RTC_WAKEUP,
                 cal.getTimeInMillis(), REPEAT_TIME, pending);
-        long start_time = System.currentTimeMillis() + (20000);
+        long start_time = System.currentTimeMillis() + (period*1000);
         //Запишем в SP, для информации, когда запустится сервис
         Date resultdate = new Date(start_time);
-        SharedPreferences.Editor ed = sPref.edit();
         ed.putString("ServiceStartAt", String.valueOf(resultdate));
         ed.apply();
         sendResult(String.valueOf(resultdate));
@@ -183,8 +184,8 @@ public class BackgroundService extends Service implements
                 Notification.DEFAULT_VIBRATE;
 
         notification.ledARGB = Color.GREEN;
-        notification.ledOffMS = 0;
-        notification.ledOnMS = 1;
+        notification.ledOffMS = 300;
+        notification.ledOnMS = 100;
         notification.flags = notification.flags | Notification.FLAG_SHOW_LIGHTS;
 
 

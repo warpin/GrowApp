@@ -98,13 +98,13 @@ public class PreferencesActivity extends AppCompatActivity implements
         int spinner_index = spinner.getSelectedItemPosition();
 
         switch(spinner_index){
-            case 0:sPref.edit().putInt("ServicePeriod", 15).apply();break;
-            case 1:sPref.edit().putInt("ServicePeriod", 30).apply();break;
-            case 2:sPref.edit().putInt("ServicePeriod", 60).apply();break;
-            case 3:sPref.edit().putInt("ServicePeriod", 120).apply();break;
+            case 0:sPref.edit().putInt("ServicePeriod", 60).apply();break;
+            case 1:sPref.edit().putInt("ServicePeriod", 900).apply();break;
+            case 2:sPref.edit().putInt("ServicePeriod", 3600).apply();break;
+            case 3:sPref.edit().putInt("ServicePeriod", 7200).apply();break;
         }
 
-        Log.d(LOG_TAG,"+"+sPref.getInt("ServicePeriod", 60));
+        Log.d(LOG_TAG,"+"+sPref.getInt("ServicePeriod", 900));
 
         String t_max_value = "0";
         String t_min_value = "0";
