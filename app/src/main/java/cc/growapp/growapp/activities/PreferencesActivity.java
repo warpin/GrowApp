@@ -1,8 +1,13 @@
 package cc.growapp.growapp.activities;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -21,13 +26,14 @@ import cc.growapp.growapp.database.Dev_profile;
 import cc.growapp.growapp.database.Preferences;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.fragments.Frag_PrefencesSlidingTabs;
+import cc.growapp.growapp.services.BackgroundService;
 
 
 public class PreferencesActivity extends AppCompatActivity implements
         DataBroker.save_user_profile.onSaveUserProfileComplete
 {
 
-    String LOG_TAG="GrowApp";
+    String LOG_TAG="PreferencesActivity";
 
     SharedPreferences sPref;
     public static final String APP_PREFERENCES = "GrowAppSettings";
@@ -88,6 +94,34 @@ public class PreferencesActivity extends AppCompatActivity implements
                 return super.onOptionsItemSelected(item);
         }
     }
+    // ---------------- Choosing notification sound ---------------------------
+    public void SetNotifSound(View v){
+        Log.d(LOG_TAG, "Choosing a notification sound");
+        Intent intent=new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Tone");
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, (Uri) null);
+        this.startActivityForResult(intent, 1);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case 1:
+                    Parcelable ringtone = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                    Log.d(LOG_TAG, "Notification sound is: " + ringtone);
+                    sPref.edit().putString("RingTone", String.valueOf(ringtone)).apply();
+                    // Toast.makeText(getBaseContext(),RingtoneManager.URI_COLUMN_INDEX,
+                    // Toast.LENGTH_SHORT).show();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    // ------------------------------------------------------------------------------------
+
 
     public boolean SavePref(View v){
         Log.d(LOG_TAG, "Сохраняю настройки для контроллера ID:"+controller_id);
@@ -259,6 +293,7 @@ public class PreferencesActivity extends AppCompatActivity implements
         if(s!=null){
             if(s.equals("answer=1")){
                 Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show();
+                startService(new Intent(this, BackgroundService.class));
                 finish();
             } else Toast.makeText(this, "Настройки не сохранены, проверьте соединение с интернетом.", Toast.LENGTH_SHORT).show();
         }

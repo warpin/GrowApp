@@ -14,7 +14,6 @@ public class SystemState {
     int water_level;
     String date;
 
-
     // constructors
     public SystemState() {
     }

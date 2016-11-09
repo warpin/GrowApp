@@ -53,6 +53,7 @@
     <string name="auto_watering_note_on">Автополив горшков включается при достижении критических значений влажности почвы, которые указаны в текущих полях. Включение/выключение автополива осуществляется в меню настройки устройства. Значение 0 соответствует ручному управлению.</string>
     <string name="auto_watering_note_off">Автополив горшков выключен. Включение/выключение автополива осуществляется в меню настройки устройства. Значение 0 соответствует ручному управлению.</string>
     <string name="crash_toast_text">The error report has been sent</string>
+    <string name="btn_setnotifsound">Set notification sound</string>
 
 
 </resources>

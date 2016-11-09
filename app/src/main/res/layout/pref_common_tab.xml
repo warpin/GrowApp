@@ -53,24 +53,33 @@
                 android:layout_alignParentLeft="true"
                 android:layout_alignParentStart="true" />
 
+          <Button
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:text="@string/btn_setnotifsound"
+              android:id="@+id/btn_setnotifsound"
+              android:onClick="SetNotifSound"
+              android:layout_below="@+id/pref_period_spinner"
+              android:layout_alignParentLeft="true"
+              android:layout_alignParentStart="true" />
 
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="true"
-                android:layout_alignParentStart="true"
-                android:id="@+id/relativeLayout"
-                android:layout_below="@+id/textView19">
+          <RelativeLayout
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:layout_alignParentLeft="true"
+              android:layout_alignParentStart="true"
+              android:id="@+id/relativeLayout"
+              android:layout_below="@+id/btn_setnotifsound">
 
 
-                  <GridLayout
-                      android:layout_width="match_parent"
-                      android:layout_height="wrap_content"
+              <GridLayout
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
 
-                      android:id="@+id/pref_gl">
-                  </GridLayout>
-                  <View style="@style/Divider" android:padding="5dp"/>
+                  android:id="@+id/pref_gl">
+              </GridLayout>
+              <View style="@style/Divider" android:padding="5dp"/>
 
-            </RelativeLayout>
+          </RelativeLayout>
       </RelativeLayout>
 </ScrollView>

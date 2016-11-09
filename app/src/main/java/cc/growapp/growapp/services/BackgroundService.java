@@ -11,8 +11,10 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
@@ -53,6 +55,8 @@ public class BackgroundService extends Service implements
     String LOG_TAG = "Service";
     NotificationManager nm;
     SharedPreferences sPref;
+    int period;
+    String ringtone;
     public static final String APP_PREFERENCES = "GrowAppSettings";
     // JSON parser class
     private int notif_id = 0;
@@ -94,6 +98,16 @@ public class BackgroundService extends Service implements
         Log.d(LOG_TAG, "Service created!");
         db = new DatabaseHelper(getApplicationContext());
 
+        sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
+        period = sPref.getInt("ServicePeriod", 900);
+
+        String default_ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString();
+        ringtone = sPref.getString("RingTone",default_ringtone);
+
+        Log.d(LOG_TAG,String.valueOf(period));
+
+
+
         // I want to restart this service again in 15 minutes
 /*        AlarmManager alarm = (AlarmManager) getSystemService(ALARM_SERVICE);
         long start_time = System.currentTimeMillis() + (5000);
@@ -118,11 +132,8 @@ public class BackgroundService extends Service implements
 
     @Override
     public void onDestroy() {
-        sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
-        int period = sPref.getInt("ServicePeriod",900);
-        Log.d(LOG_TAG,String.valueOf(period));
-        SharedPreferences.Editor ed = sPref.edit();
 
+        SharedPreferences.Editor ed = sPref.edit();
         AlarmManager service = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         //Intent i = new Intent(context, MyStartServiceReceiver.class);
         PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
@@ -178,14 +189,14 @@ public class BackgroundService extends Service implements
 
 
 
-        Notification notification = builder.getNotification(); // до API 16
-        //Notification notification = builder.build();
-        notification.defaults = Notification.DEFAULT_SOUND |
-                Notification.DEFAULT_VIBRATE;
+        //Notification notification = builder.getNotification(); // до API 16
+        Notification notification = builder.build();
+        notification.defaults = Notification.DEFAULT_VIBRATE;
+        notification.sound = Uri.parse(ringtone);
 
-        notification.ledARGB = Color.GREEN;
-        notification.ledOffMS = 300;
-        notification.ledOnMS = 100;
+        notification.ledARGB = Color.YELLOW;
+        notification.ledOffMS = 1000;
+        notification.ledOnMS = 1000;
         notification.flags = notification.flags | Notification.FLAG_SHOW_LIGHTS;
 
 
@@ -205,8 +216,8 @@ public class BackgroundService extends Service implements
         for (Controllers ctrl : allCtrls) {
             String ctrl_id=ctrl.get_ctrl_id();
             //Log.d(LOG_TAG, "CTRLS Name = "+ctrl.get_name());
-            Log.d(LOG_TAG, "ID контроллера: " + String.valueOf(ctrl_id));
-            Log.d(LOG_TAG, "Name контроллера: " + ctrl.get_name());
+            Log.d(LOG_TAG, "Controller ID: " + String.valueOf(ctrl_id));
+            Log.d(LOG_TAG, "Controller NAME: " + ctrl.get_name());
 
             //Запускаем процесс получения данных датчиков
             String hash = sPref.getString("hash", "");
@@ -232,11 +243,11 @@ public class BackgroundService extends Service implements
                 if (success == 1){
                     // Успешно получены данные
                     JSONArray DevProfileObj = json.getJSONArray("data");
-                    Log.d(LOG_TAG, "JSON данные получены ...");
+                    Log.d(LOG_TAG, "JSON data has been received ...");
 
                     // получаем первый обьект с JSON Array
                     JSONObject dev_profile_json = DevProfileObj.getJSONObject(0);
-                    Log.d(LOG_TAG, "Первый объект JSON получен = " + dev_profile_json);
+                    Log.d(LOG_TAG, "First JSON object has been recevied = " + dev_profile_json);
 
                     // получаем обьекты с JSON Array
                     String ctrl_id = dev_profile_json.getString("ctrl_id").trim();
@@ -278,10 +289,10 @@ public class BackgroundService extends Service implements
 
                     SystemState state = db.getSystemState(ctrl_id);
                     int l_result= state.get_light_state();
-                    /*int t_result= state.get_t();
-                    int h_result= state.get_h();
-                    int pot1_h_result= state.get_pot1_h();
-                    int pot2_h_result= state.get_pot2_h();*/
+                    //int t_result= state.get_t();
+                    //int h_result= state.get_h();
+                    //int pot1_h_result= state.get_pot1_h();
+                    //int pot2_h_result= state.get_pot2_h();
                     int p1_result= state.get_pump1_state();
                     int p2_result= state.get_pump2_state();
                     int relay1_result= state.get_relay1_state();
@@ -305,10 +316,10 @@ public class BackgroundService extends Service implements
                     int relay2_control= dev_profile.get_relay2_control();
                     int water_control= dev_profile.get_water_control();
 
-                    Log.d(LOG_TAG, "Дата с сервера = " + date);
-                    Log.d(LOG_TAG, "Дата с настроек = " +date_result);
-                    Log.d(LOG_TAG, "t с сервера = " + t);
-                    Log.d(LOG_TAG, "t с настроек = " +saved_t_max);
+                    Log.d(LOG_TAG, "Date from external DB = " + date);
+                    Log.d(LOG_TAG, "Date from local DB  = " +date_result);
+                    Log.d(LOG_TAG, "t from external DB = " + t);
+                    Log.d(LOG_TAG, "t from local DB = " +saved_t_max);
 
                     if (!saved_all_notify && !date.equals(date_result) && !date_result.isEmpty() && !ctrl_id.equals("")) {
                         if ((t > saved_t_max || t < saved_t_min) && saved_t_notify && t_control==1)
@@ -316,11 +327,11 @@ public class BackgroundService extends Service implements
                         if ((h > saved_h_max || h < saved_h_min) && saved_h_notify && h_control==1)
                             sendNotif(ctrl_id, "Влажность воздуха " + h + "!");
                         if ((pot1_h > saved_pot1_h_max || pot1_h < saved_pot1_h_min) && saved_pot1_notify && pot1_control==1)
-                            sendNotif(ctrl_id, "Влажность почвы 1 горшка " + pot1_h + "!");
+                            sendNotif(ctrl_id, "Влажность 1 горшка " + pot1_h + "!");
                         if ((pot2_h > saved_pot2_h_max || pot2_h < saved_pot2_h_min) && saved_pot2_notify && pot2_control==1)
-                            sendNotif(ctrl_id, "Влажность почвы 2 горшка " + pot2_h + "!");
+                            sendNotif(ctrl_id, "Влажность 2 горшка " + pot2_h + "!");
                         if ((water_level > saved_wl_max || water_level < saved_wl_min) && saved_wl_notify && water_control==1)
-                            sendNotif(ctrl_id, "Уровень дыма " + water_level + "!");
+                            sendNotif(ctrl_id, "Smoke level " + water_level + "!");
 
                         if (l_result != light_state && saved_l_notify && l_control==1) {
                             if (light_state == 1) sendNotif(ctrl_id, "Свет включился!");

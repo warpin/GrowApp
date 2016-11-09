@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
@@ -17,7 +18,7 @@ import cc.growapp.growapp.services.BackgroundService;
 public class InfoActivity extends AppCompatActivity  {
 
 
-    private static final String LOG_TAG = "GrowApp";
+    private static final String LOG_TAG = "InfoActivity";
     SharedPreferences sPref;
     public static final String APP_PREFERENCES = "GrowAppSettings";
 
@@ -41,12 +42,13 @@ public class InfoActivity extends AppCompatActivity  {
             getSupportActionBar().setTitle(getString(R.string.info));
         }
 
-        final TextView tv_servicetime = (TextView) findViewById(R.id.info_tv_serviceStartTime);
+        final TextView tv_serviceStartAt = (TextView) findViewById(R.id.info_tv_serviceStartTime);
         TextView tv_serviceperiod = (TextView) findViewById(R.id.info_tv_period);
 
         sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
         String ServiceStartAt = sPref.getString("ServiceStartAt","");
         int ServicePeriod = sPref.getInt("ServicePeriod", 900);
+        Log.d(LOG_TAG,"Service starts at: " + ServiceStartAt);
         switch (ServicePeriod){
             case 60:tv_serviceperiod.setText(getString(R.string.min1));break;
             case 900:tv_serviceperiod.setText(getString(R.string.min15));break;
@@ -54,14 +56,14 @@ public class InfoActivity extends AppCompatActivity  {
             case 7200:tv_serviceperiod.setText(getString(R.string.hour2));break;
         }
 
-        if(!ServiceStartAt.isEmpty())tv_servicetime.setText(ServiceStartAt);
+        if(!ServiceStartAt.isEmpty())tv_serviceStartAt.setText(ServiceStartAt);
 
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String s = intent.getStringExtra(BackgroundService.MESSAGE);
                 //Log.d(LOG_TAG, "------------------------------------------------------------");
-                if(!s.isEmpty())tv_servicetime.setText(s);
+                if(!s.isEmpty())tv_serviceStartAt.setText(s);
             }
         };
 
