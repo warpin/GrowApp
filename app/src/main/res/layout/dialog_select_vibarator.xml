@@ -1,0 +1,30 @@
+<RadioGroup
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_alignParentTop="true"
+    android:layout_centerHorizontal="true"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/no_vibration"
+            android:id="@+id/dialog_no_vibration"
+            />
+
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/short_vibration"
+            android:id="@+id/dialog_short_vibration"
+            />
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/long_vibration"
+            android:id="@+id/dialog_long_vibration"
+           />
+
+    </RadioGroup>
+

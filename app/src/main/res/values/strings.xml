@@ -54,6 +54,15 @@
     <string name="auto_watering_note_off">Автополив горшков выключен. Включение/выключение автополива осуществляется в меню настройки устройства. Значение 0 соответствует ручному управлению.</string>
     <string name="crash_toast_text">The error report has been sent</string>
     <string name="btn_setnotifsound">Set notification sound</string>
+    <string name="notif_sound_label">Звук уведомления</string>
+    <string name="notif_vibrate_label">Вибрация</string>
+    <string name="notif_color_label">Цвет</string>
+    <string name="notif_pref">Настройка уведомлений</string>
+    <string name="pref_crit_notif">Критические значения</string>
+    <string name="no_vibration">Без вибрации</string>
+    <string name="short_vibration">Короткий</string>
+    <string name="long_vibration">Длинный</string>
+    <string name="default_string">По умолчанию</string>
 
 
 </resources>

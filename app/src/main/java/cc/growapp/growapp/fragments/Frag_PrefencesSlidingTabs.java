@@ -1,10 +1,12 @@
 
 package cc.growapp.growapp.fragments;
 
+import android.app.Notification;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.app.Fragment;
@@ -48,8 +50,8 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
     int relay1_control;
     int relay2_control;
     int water_control;
-    int auto_watering1;
-    int auto_watering2;
+    //int auto_watering1;
+    //int auto_watering2;
 
 
 
@@ -58,7 +60,7 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
     SharedPreferences sPref;
     public static final String APP_PREFERENCES = "GrowAppSettings";
     String controller_id;
-    String hash;
+    //String hash;
 
 
     // Database Helper
@@ -69,16 +71,12 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
 
     Spinner spinner;
     EditText parameter_min_value, parameter_max_value;
-    TextView parameter_value;
+    TextView parameter_value,tv_ringtone_title,tv_vibrator_title,tv_notifcolor;
 
     CheckBox parameter_notify;
     CheckBox all_notify;
 
-    final int temp_max_value=50;
-    final int hum_max_value=90;
-    final int pot1_max_value=100;
-    final int pot2_max_value=100;
-    final int water_max_value=100;
+
 
 
 
@@ -153,6 +151,8 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
                     return getString(R.string.common_pref);
                 case 1:
                     return getString(R.string.auto_watering_pref);
+                case 2:
+                    return getString(R.string.notif_pref);
             }
 
             //return "Item " + (position + 1);
@@ -179,28 +179,31 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
 
             switch (position){
                 case 0:
-
-                    db = new DatabaseHelper(getContext());
-                    Preferences preferences = db.getPrefProfile(controller_id);
-                    Dev_profile dev_profile = db.getDevProfile(controller_id);
-
-                    l_control= dev_profile.get_light_control();
-                    t_control= dev_profile.get_t_control();
-                    h_control= dev_profile.get_h_control();
-                    pot1_control= dev_profile.get_pot1_control();
-                    pot2_control= dev_profile.get_pot2_control();
-                    pump1_control= dev_profile.get_pump1_control();
-                    pump2_control= dev_profile.get_pump2_control();
-                    relay1_control= dev_profile.get_relay1_control();
-                    relay2_control= dev_profile.get_relay2_control();
-                    water_control= dev_profile.get_water_control();
-                    db.closeDB();
+                    Uri default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    String ringtone = sPref.getString("RingTone", String.valueOf(default_sound_uri));
+                    String ringtone_title = RingtoneManager.getRingtone(getContext(),Uri.parse(ringtone)).getTitle(getContext());
+                    String vibrator_title = sPref.getString("Vibrator", "Short");
+                    int color = sPref.getInt("NotifColor", -16711936);
+                    String color_name="Green";
+                    switch (color){
+                        case -65536:color_name="Red";break;
+                        case -16711936:color_name="Green";break;
+                        case -256:color_name="Yellow";break;
+                        case -16776961:color_name="Blue";break;
+                    }
 
 
-                    all_notify = (CheckBox) view.findViewById(R.id.cb_notify_all);
+                    tv_ringtone_title = (TextView) view.findViewById(R.id.pref_tv_setnotifsound);
+                    tv_ringtone_title.setText(ringtone_title);
 
-                    boolean saved_all_notify= (preferences.get_all_notify()!=0);
-                    if(saved_all_notify)all_notify.setChecked(true); else all_notify.setChecked(false);
+                    tv_vibrator_title = (TextView) view.findViewById(R.id.pref_tv_setnotifvibrate);
+                    tv_vibrator_title.setText(vibrator_title);
+
+                    tv_notifcolor = (TextView) view.findViewById(R.id.pref_tv_setnotifcolor);
+                    tv_notifcolor.setText(color_name);
+
+
+
 
                     spinner = (Spinner) view.findViewById(R.id.pref_period_spinner);
 
@@ -241,6 +244,32 @@ public class Frag_PrefencesSlidingTabs extends Fragment {
                         case 7200:index=3;break;
                     }
                     spinner.setSelection(index);
+
+
+
+                    db = new DatabaseHelper(getContext());
+                    Preferences preferences = db.getPrefProfile(controller_id);
+                    Dev_profile dev_profile = db.getDevProfile(controller_id);
+
+                    l_control= dev_profile.get_light_control();
+                    t_control= dev_profile.get_t_control();
+                    h_control= dev_profile.get_h_control();
+                    pot1_control= dev_profile.get_pot1_control();
+                    pot2_control= dev_profile.get_pot2_control();
+                    pump1_control= dev_profile.get_pump1_control();
+                    pump2_control= dev_profile.get_pump2_control();
+                    relay1_control= dev_profile.get_relay1_control();
+                    relay2_control= dev_profile.get_relay2_control();
+                    water_control= dev_profile.get_water_control();
+                    db.closeDB();
+
+
+                    all_notify = (CheckBox) view.findViewById(R.id.cb_notify_all);
+
+                    boolean saved_all_notify= (preferences.get_all_notify()!=0);
+                    if(saved_all_notify)all_notify.setChecked(true); else all_notify.setChecked(false);
+
+
 
                     //Наполним форму сохранеными настройками
                     if(controller_id!=null && !controller_id.isEmpty()){

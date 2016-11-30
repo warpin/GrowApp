@@ -43,7 +43,7 @@ public class GraphsActivity extends AppCompatActivity implements
         DataBroker.get_graphs_data.onGetGraphsDataComplete {
 
     private LineChart mChart;
-    private String LOG_TAG = "GrowApp";
+    private String LOG_TAG = "GraphsActivity";
     private String[] param_spinner_data;
     private String[] period_spinner_data = {"Сегодня", "Вчера", "Неделя", "Месяц", "Прошлый месяц"};
     private int period_value;
@@ -343,9 +343,9 @@ public class GraphsActivity extends AppCompatActivity implements
             ll_opt_value = 50f;
         }
         if(param_value.equals(getString(R.string.water_level))){
-            ll_max_value = 100f;
-            ll_min_value = 10f;
-            ll_opt_value = 70f;
+            //ll_max_value = 100f;
+            //ll_min_value = 10f;
+            //ll_opt_value = 70f;
         }
 
 
@@ -498,7 +498,7 @@ public class GraphsActivity extends AppCompatActivity implements
         int pump2_control= dev_profile.get_pump2_control();
         int relay1_control= dev_profile.get_relay1_control();
         int relay2_control= dev_profile.get_relay2_control();
-        int water_control= dev_profile.get_water_control();
+        int custom_control= dev_profile.get_water_control();
         db.closeDB();
 
         //Преобразуем в массив
@@ -507,6 +507,7 @@ public class GraphsActivity extends AppCompatActivity implements
         if(h_control!=0)params_names_list.add(getString(R.string.hum));
         if(pot1_control!=0)params_names_list.add(getString(R.string.pot1_hum));
         if(pot2_control!=0)params_names_list.add(getString(R.string.pot2_hum));
+        if(custom_control!=0)params_names_list.add(getString(R.string.water_level));
 
         param_spinner_data = params_names_list.toArray(new String[params_names_list.size()]);
 

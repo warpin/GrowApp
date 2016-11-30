@@ -2,12 +2,15 @@ package cc.growapp.growapp.activities;
 
 import android.app.AlertDialog;
 import android.app.Application;
+import android.app.Notification;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -95,6 +98,10 @@ public class WelcomeActivity extends AppCompatActivity implements
         sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
         saved_user = sPref.getString("user", "");
         saved_pass = sPref.getString("pass", "");
+        if(!sPref.contains("RingTone"))sPref.edit().putString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))).apply();
+        if(!sPref.contains("Vibrator"))sPref.edit().putString("Vibrator", "Short").apply();
+        if(!sPref.contains("NotifColor"))sPref.edit().putInt("NotifColor", -16711936).apply();
+
 
         if(!saved_user.equals("") && !saved_pass.equals("")){
             if(check_network()){

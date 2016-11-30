@@ -3,10 +3,10 @@
     android:oneshot="false"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@drawable/anim_moon_64_1" android:duration="400" />
-    <item android:drawable="@drawable/anim_moon_64_2" android:duration="400" />
+    <!-- <item android:drawable="@drawable/anim_moon_64_2" android:duration="400" />
     <item android:drawable="@drawable/anim_moon_64_3" android:duration="400" />
     <item android:drawable="@drawable/anim_moon_64_4" android:duration="400" />
     <item android:drawable="@drawable/anim_moon_64_5" android:duration="400" />
-    <item android:drawable="@drawable/anim_moon_64_6" android:duration="400" />
+    <item android:drawable="@drawable/anim_moon_64_6" android:duration="400" /> -->
 
 </animation-list>

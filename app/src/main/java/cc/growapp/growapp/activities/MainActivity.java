@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements
         DataBroker.get_system_state.onGetSystemStateComplete{
 
     boolean prog_toggle=true;
-    private static final String LOG_TAG = "GrowApp";
+    private static final String LOG_TAG = "MainActivity";
     private static final String LOG_TAG_FRAG = "Frag";
 
 

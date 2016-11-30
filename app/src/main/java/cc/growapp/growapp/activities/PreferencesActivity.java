@@ -2,22 +2,32 @@ package cc.growapp.growapp.activities;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.provider.Settings;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AutoCompleteTextView;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.GridLayout;
+import android.widget.RadioButton;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import cc.growapp.growapp.DataBroker;
@@ -39,6 +49,8 @@ public class PreferencesActivity extends AppCompatActivity implements
     public static final String APP_PREFERENCES = "GrowAppSettings";
     String controller_id;
     String hash;
+    String vibrator_type;
+    int color;
 
     // Database Helper
     DatabaseHelper db;
@@ -99,9 +111,139 @@ public class PreferencesActivity extends AppCompatActivity implements
         Log.d(LOG_TAG, "Choosing a notification sound");
         Intent intent=new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
         intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION);
-        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Tone");
-        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, (Uri) null);
+        //intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Tone");
+        //intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, (Uri) null);
+        // for existing ringtone
+
+        String existingValue = sPref.getString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)));
+        if (existingValue != null) {
+            if (existingValue.length() == 0) {
+                // Select "Silent"
+                intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, (Uri) null);
+            } else {
+                intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(existingValue));
+            }
+        } else {
+            // No ringtone has been selected, set to the default
+            intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Settings.System.DEFAULT_NOTIFICATION_URI);
+        }
         this.startActivityForResult(intent, 1);
+
+    }
+    // ---------------- Choosing notification vibrate ---------------------------
+    public void SetNotifVibrate(View v){
+        Log.d(LOG_TAG, "Choosing the vibration for notification");
+        // -------------------------------- Set vibrate dialog ----------------------------
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+
+        RelativeLayout rl = (RelativeLayout) findViewById(R.id.pref);
+        final View dialogView = inflater.inflate(R.layout.dialog_select_vibarator, rl,false);
+
+        dialogBuilder.setView(dialogView);
+
+        final RadioButton no_vibrator = (RadioButton) dialogView.findViewById(R.id.dialog_no_vibration);
+        final RadioButton short_vibrator = (RadioButton) dialogView.findViewById(R.id.dialog_short_vibration);
+        final RadioButton long_vibrator = (RadioButton) dialogView.findViewById(R.id.dialog_long_vibration);
+
+
+
+        vibrator_type = sPref.getString("Vibrator", "Short");
+
+        switch (vibrator_type){
+            case "No":no_vibrator.setChecked(true);break;
+            case "Short":short_vibrator.setChecked(true);break;
+            case "Long":long_vibrator.setChecked(true);break;
+
+        }
+
+        dialogBuilder.setTitle("Вибрация");
+        //dialogBuilder.setMessage("Новое название");
+        dialogBuilder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+
+
+
+                if (no_vibrator.isChecked()) vibrator_type = "No";
+                if (short_vibrator.isChecked()) vibrator_type = "Short";
+                if (long_vibrator.isChecked()) vibrator_type = "Long";
+
+                Log.d(LOG_TAG, "Vibrator type: " + vibrator_type);
+
+                TextView tv_vibrator_title = (TextView) findViewById(R.id.pref_tv_setnotifvibrate);
+                tv_vibrator_title.setText(vibrator_type);
+            }
+        });
+        dialogBuilder.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                //pass
+            }
+        });
+
+        AlertDialog b = dialogBuilder.create();
+        b.show();
+    }
+    // ---------------- Choosing notification color ---------------------------
+    public void SetNotifColor(View v){
+        Log.d(LOG_TAG, "Choosing the color for notification");
+        // -------------------------------- Set vibrate dialog ----------------------------
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = this.getLayoutInflater();
+
+        RelativeLayout rl = (RelativeLayout) findViewById(R.id.pref);
+        final View dialogView = inflater.inflate(R.layout.dialog_select_color, rl,false);
+
+        dialogBuilder.setView(dialogView);
+
+        final RadioButton rbtn_red = (RadioButton) dialogView.findViewById(R.id.dialog_red);
+        final RadioButton rbtn_green = (RadioButton) dialogView.findViewById(R.id.dialog_green);
+        final RadioButton rbtn_yellow = (RadioButton) dialogView.findViewById(R.id.dialog_yellow);
+        final RadioButton rbtn_blue = (RadioButton) dialogView.findViewById(R.id.dialog_blue);
+
+
+        color = sPref.getInt("NotifColor", -16711936);
+
+        switch(color){
+            case -65536:rbtn_red.setChecked(true);break;
+            case -16711936:rbtn_green.setChecked(true);break;
+            case -256:rbtn_yellow.setChecked(true);break;
+            case -16776961:rbtn_blue.setChecked(true);break;
+
+        }
+
+
+            dialogBuilder.setTitle("Выберите цвет");
+        //dialogBuilder.setMessage("Новое название");
+        dialogBuilder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+
+
+                if (rbtn_red.isChecked()) color = -65536;
+                if (rbtn_green.isChecked()) color = -16711936;
+                if (rbtn_yellow.isChecked()) color = -256;
+                if (rbtn_blue.isChecked()) color = -16776961;
+                String color_name="Green";
+                switch (color){
+                    case -65536:color_name="Red";break;
+                    case -16711936:color_name="Green";break;
+                    case -256:color_name="Yellow";break;
+                    case -16776961:color_name="Blue";break;
+                }
+
+
+                Log.d(LOG_TAG, "Notification color: " + color_name);
+                TextView tv_color_title = (TextView) findViewById(R.id.pref_tv_setnotifcolor);
+                tv_color_title.setText(color_name);
+            }
+        });
+        dialogBuilder.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                //pass
+            }
+        });
+
+        AlertDialog b = dialogBuilder.create();
+        b.show();
     }
 
     @Override
@@ -112,6 +254,8 @@ public class PreferencesActivity extends AppCompatActivity implements
                     Parcelable ringtone = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
                     Log.d(LOG_TAG, "Notification sound is: " + ringtone);
                     sPref.edit().putString("RingTone", String.valueOf(ringtone)).apply();
+                    TextView tv_ringtone_title = (TextView) this.findViewById(R.id.pref_tv_setnotifsound);
+                    tv_ringtone_title.setText(RingtoneManager.getRingtone(this, (Uri) ringtone).getTitle(this));
                     // Toast.makeText(getBaseContext(),RingtoneManager.URI_COLUMN_INDEX,
                     // Toast.LENGTH_SHORT).show();
                     break;
@@ -128,6 +272,9 @@ public class PreferencesActivity extends AppCompatActivity implements
 
         if(!validateFields())return false;
 
+        sPref.edit().putString("Vibrator", vibrator_type).apply();
+        sPref.edit().putInt("NotifColor", color).apply();
+
         Spinner spinner = (Spinner) findViewById(R.id.pref_period_spinner);
         int spinner_index = spinner.getSelectedItemPosition();
 
@@ -138,7 +285,7 @@ public class PreferencesActivity extends AppCompatActivity implements
             case 3:sPref.edit().putInt("ServicePeriod", 7200).apply();break;
         }
 
-        Log.d(LOG_TAG,"+"+sPref.getInt("ServicePeriod", 900));
+        Log.d(LOG_TAG,"Period: "+sPref.getInt("ServicePeriod", 900)+" second(s)");
 
         String t_max_value = "0";
         String t_min_value = "0";
@@ -156,7 +303,7 @@ public class PreferencesActivity extends AppCompatActivity implements
         String pot1_notify_value = "0";
         String pot2_notify_value = "0";
         String wl_notify_value = "0";
-        String all_notify_value = "0";
+        String all_notify_value;
         String l_notify_value = "0";
         String relays_notify_value = "0";
         String pumps_notify_value = "0";

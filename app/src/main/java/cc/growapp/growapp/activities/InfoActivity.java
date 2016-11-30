@@ -11,6 +11,9 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+
+import java.util.Date;
+
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.services.BackgroundService;
 
@@ -43,12 +46,15 @@ public class InfoActivity extends AppCompatActivity  {
         }
 
         final TextView tv_serviceStartAt = (TextView) findViewById(R.id.info_tv_serviceStartTime);
+        final TextView tv_serviceLastStartAt = (TextView) findViewById(R.id.info_tv_lastStartTime);
         TextView tv_serviceperiod = (TextView) findViewById(R.id.info_tv_period);
 
         sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
-        String ServiceStartAt = sPref.getString("ServiceStartAt","");
+        Long ServiceStartAt = sPref.getLong("ServiceStartAt", 0);
+        Long ServiceLastStartAt = sPref.getLong("ServiceLastStartAt", 0);
         int ServicePeriod = sPref.getInt("ServicePeriod", 900);
         Log.d(LOG_TAG,"Service starts at: " + ServiceStartAt);
+        Log.d(LOG_TAG,"Service last start at: " + ServiceStartAt);
         switch (ServicePeriod){
             case 60:tv_serviceperiod.setText(getString(R.string.min1));break;
             case 900:tv_serviceperiod.setText(getString(R.string.min15));break;
@@ -56,14 +62,18 @@ public class InfoActivity extends AppCompatActivity  {
             case 7200:tv_serviceperiod.setText(getString(R.string.hour2));break;
         }
 
-        if(!ServiceStartAt.isEmpty())tv_serviceStartAt.setText(ServiceStartAt);
+        //if(!ServiceStartAt.isEmpty())
+        tv_serviceStartAt.setText(new Date(ServiceStartAt).toString());
+        tv_serviceLastStartAt.setText(new Date(ServiceLastStartAt).toString());
 
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                String s = intent.getStringExtra(BackgroundService.MESSAGE);
+                Long start_time = intent.getLongExtra(BackgroundService.START_TIME,0);
+                Long last_start = intent.getLongExtra(BackgroundService.LAST_TIME,0);
                 //Log.d(LOG_TAG, "------------------------------------------------------------");
-                if(!s.isEmpty())tv_serviceStartAt.setText(s);
+                tv_serviceStartAt.setText(new Date(start_time).toString());
+                tv_serviceLastStartAt.setText(new Date(last_start).toString());
             }
         };
 

@@ -16,6 +16,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -23,19 +24,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.URL;
-import java.net.UnknownHostException;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import cc.growapp.growapp.DataBroker;
 import cc.growapp.growapp.R;
@@ -52,11 +45,13 @@ public class BackgroundService extends Service implements
         DataBroker.get_system_state.onGetSystemStateComplete
 {
 
-    String LOG_TAG = "Service";
+    String LOG_TAG = "GrowAppService";
     NotificationManager nm;
     SharedPreferences sPref;
     int period;
     String ringtone;
+    int color;
+    long[] vibrate;
     public static final String APP_PREFERENCES = "GrowAppSettings";
     // JSON parser class
     private int notif_id = 0;
@@ -64,7 +59,13 @@ public class BackgroundService extends Service implements
     // Database Helper
     DatabaseHelper db;
 
-    //LocalBroadcastManager broadcaster;
+    static final public String ACTION = "cc.growapp.growapp.InfoActivity.ACTION";
+    static final public String START_TIME = "cc.growapp.growapp.InfoActivity.START_TIME";
+    static final public String LAST_TIME = "cc.growapp.growapp.InfoActivity.LAST_TIME";
+
+    long REPEAT_TIME;
+    long start_time;
+    long ServiceStartAt,ServiceLastStartAt;
 
 
     @Override
@@ -79,49 +80,58 @@ public class BackgroundService extends Service implements
         //broadcaster = LocalBroadcastManager.getInstance(this);
     }
 
-    static final public String ACTION = "cc.growapp.growapp.InfoActivity.ACTION";
-    static final public String MESSAGE = "cc.growapp.growapp.InfoActivity.MESSAGE";
 
-    public void sendResult(String message) {
+    public void sendResult(long start_time,long last_time) {
         Intent intent = new Intent(ACTION);
-        if(message != null){
-            intent.putExtra(MESSAGE, message);
-        }
+        //if(message != null){
+            intent.putExtra(START_TIME, start_time);
+            intent.putExtra(LAST_TIME, last_time);
+        //}
         sendBroadcast(intent);
     }
 
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
+        Log.d(LOG_TAG, "Service initialization!");
         nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        Log.d(LOG_TAG, "Service created!");
+
         db = new DatabaseHelper(getApplicationContext());
 
         sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
         period = sPref.getInt("ServicePeriod", 900);
+        ServiceStartAt = sPref.getLong("ServiceStartAt", 0);
+        ServiceLastStartAt = sPref.getLong("ServiceLastStartAt", 0);
 
         String default_ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString();
         ringtone = sPref.getString("RingTone",default_ringtone);
+        String vibrator_type = sPref.getString("Vibrator","Short");
+        color = sPref.getInt("NotifColor",-16711936);
+        switch(vibrator_type){
+            case "No":vibrate= new long[] {0};break;
+            case "Short":vibrate= new long[] {1000,1000};break;
+            case "Long":vibrate= new long[] {1000,1000,1000,1000};break;
+        }
 
-        Log.d(LOG_TAG,String.valueOf(period));
+        REPEAT_TIME = 1000 * period;
+        start_time = System.currentTimeMillis() + REPEAT_TIME;
 
 
+        Log.d(LOG_TAG,"----------------------------------------------------");
+        Log.d(LOG_TAG,"Service period :"+String.valueOf(period)+" second(s)");
+        Log.d(LOG_TAG, "Service starts at: " + new Date(ServiceStartAt));
+        Log.d(LOG_TAG, "Service last start at: " + new Date(ServiceLastStartAt));
+        Log.d(LOG_TAG, "Difference: " + (ServiceStartAt-ServiceLastStartAt));
 
-        // I want to restart this service again in 15 minutes
-/*        AlarmManager alarm = (AlarmManager) getSystemService(ALARM_SERVICE);
-        long start_time = System.currentTimeMillis() + (5000);
-        alarm.set(
-                AlarmManager.RTC_WAKEUP,
-                start_time,
-                PendingIntent.getService(this, 0, new Intent(this, GrowAppService.class), PendingIntent.FLAG_UPDATE_CURRENT)
-        );*/
-
+        if((ServiceStartAt-ServiceLastStartAt)>=REPEAT_TIME){
+            sPref.edit().putLong("ServiceLastStartAt", ServiceStartAt).apply();
+            Log.d(LOG_TAG, "Service created!");
             try {
                 GetControllersListFromSQL();
             } catch (Exception e) {
                 Log.d(LOG_TAG,"--- GetControllersListFromSQL() Failed ---");
             }
+        }
 
 
         stopSelf();
@@ -132,25 +142,23 @@ public class BackgroundService extends Service implements
 
     @Override
     public void onDestroy() {
-
-        SharedPreferences.Editor ed = sPref.edit();
         AlarmManager service = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         //Intent i = new Intent(context, MyStartServiceReceiver.class);
         PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
         Calendar cal = Calendar.getInstance();
         // start 30 seconds after boot completed
-        cal.add(Calendar.SECOND, period);
-        final long REPEAT_TIME = 1000 * period;
-        // fetch every 30 seconds
-        // InexactRepeating allows Android to optimize the energy consumption
-        service.setInexactRepeating(AlarmManager.RTC_WAKEUP,
-                cal.getTimeInMillis(), REPEAT_TIME, pending);
-        long start_time = System.currentTimeMillis() + (period*1000);
+        //cal.add(Calendar.SECOND, period);
+        //service.setInexactRepeating(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), REPEAT_TIME, pending);
+
+        service.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + period * 1000,
+                period * 1000, pending);
+
         //Запишем в SP, для информации, когда запустится сервис
-        Date resultdate = new Date(start_time);
-        ed.putString("ServiceStartAt", String.valueOf(resultdate));
-        ed.apply();
-        sendResult(String.valueOf(resultdate));
+        Log.d(LOG_TAG, "Next start time: " + new Date(start_time));
+        sPref.edit().putLong("ServiceStartAt", start_time).apply();
+        sendResult(start_time,ServiceLastStartAt);
+
 
     }
 
@@ -158,12 +166,9 @@ public class BackgroundService extends Service implements
     void sendNotif(String ctrl_id, String message) {
         Log.d(LOG_TAG, "Starting notification");
 
-        //String user_login = sPref.getString("user", "");
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra("controller_id", ctrl_id);
 
-
-        //PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent pIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         Context context = getApplicationContext();
@@ -190,14 +195,18 @@ public class BackgroundService extends Service implements
 
 
         //Notification notification = builder.getNotification(); // до API 16
-        Notification notification = builder.build();
-        notification.defaults = Notification.DEFAULT_VIBRATE;
-        notification.sound = Uri.parse(ringtone);
+        Notification notification = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+            notification = builder.build();
 
-        notification.ledARGB = Color.YELLOW;
-        notification.ledOffMS = 1000;
-        notification.ledOnMS = 1000;
-        notification.flags = notification.flags | Notification.FLAG_SHOW_LIGHTS;
+            //notification.defaults = Notification.DEFAULT_ALL;
+            notification.sound = Uri.parse(ringtone);
+            notification.vibrate = vibrate;
+            notification.ledARGB = color;
+            notification.ledOffMS = 1000;
+            notification.ledOnMS = 1000;
+            notification.flags = notification.flags | Notification.FLAG_SHOW_LIGHTS;
+        }
 
 
         NotificationManager notificationManager = (NotificationManager) context
@@ -331,7 +340,7 @@ public class BackgroundService extends Service implements
                         if ((pot2_h > saved_pot2_h_max || pot2_h < saved_pot2_h_min) && saved_pot2_notify && pot2_control==1)
                             sendNotif(ctrl_id, "Влажность 2 горшка " + pot2_h + "!");
                         if ((water_level > saved_wl_max || water_level < saved_wl_min) && saved_wl_notify && water_control==1)
-                            sendNotif(ctrl_id, "Smoke level " + water_level + "!");
+                            sendNotif(ctrl_id, "Уровень дыма " + water_level + "!");
 
                         if (l_result != light_state && saved_l_notify && l_control==1) {
                             if (light_state == 1) sendNotif(ctrl_id, "Свет включился!");
@@ -367,13 +376,13 @@ public class BackgroundService extends Service implements
 
 
                 }else{
-                    Log.d(LOG_TAG, "Данные не найдены!");
+                    Log.d(LOG_TAG, "Data not found");
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         } else {
-            //Toast.makeText(this, R.string.no_data, Toast.LENGTH_SHORT).show();
+            Log.d(LOG_TAG, "Server does not answer");
         }
 
     }

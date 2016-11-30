@@ -1,0 +1,35 @@
+<RadioGroup
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_alignParentTop="true"
+    android:layout_centerHorizontal="true"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Красный"
+            android:id="@+id/dialog_red"
+            />
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Зеленый"
+            android:id="@+id/dialog_green"
+            />
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Желтый"
+            android:id="@+id/dialog_yellow"
+           />
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Синий"
+            android:id="@+id/dialog_blue"
+            />
+
+    </RadioGroup>
+
