@@ -1,21 +1,22 @@
 package cc.growapp.growapp;
 
+import android.content.ContentValues;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import cc.growapp.growapp.database.Dev_profile;
-import cc.growapp.growapp.database.Preferences;
-import cc.growapp.growapp.database.SystemState;
+import cc.growapp.growapp.database.MyContentProvider;
 
 public class JSONHandler
 {
     // Database Helper
     String LOG_TAG = "GrowApp";
 
-    public Preferences ParseJSONProfile(String JSONString) {
+    public ContentValues ParseJSONProfile(String JSONString) {
         try {
             JSONObject json = new JSONObject(JSONString);
             int success;
@@ -32,35 +33,55 @@ public class JSONHandler
                 JSONObject profile = ProfileObj.getJSONObject(0);
                 Log.d(LOG_TAG, "Профиль настроек JSON получен = " + profile);
 
-                //int ctrl_id = Integer.parseInt(profile.getString("ctrl_id"));
-                String ctrl_id = profile.getString("ctrl_id");
-                //int version = Integer.parseInt(profile.getString("version"));
-                int t_max = Integer.parseInt(profile.getString("t_max"));
-                int t_min = Integer.parseInt(profile.getString("t_min"));
-                int h_max = Integer.parseInt(profile.getString("h_max"));
-                int h_min = Integer.parseInt(profile.getString("h_min"));
-                int pot1_h_max = Integer.parseInt(profile.getString("pot1_h_max"));
-                int pot1_h_min = Integer.parseInt(profile.getString("pot1_h_min"));
-                int pot2_h_max = Integer.parseInt(profile.getString("pot2_h_max"));
-                int pot2_h_min = Integer.parseInt(profile.getString("pot2_h_min"));
-                int wl_max = Integer.parseInt(profile.getString("wl_max"));
-                int wl_min = Integer.parseInt(profile.getString("wl_min"));
-                int all_notify = Integer.parseInt(profile.getString("all_notify"));
-                int t_notify = Integer.parseInt(profile.getString("t_notify"));
-                int h_notify = Integer.parseInt(profile.getString("h_notify"));
-                int pot1_notify = Integer.parseInt(profile.getString("pot1_notify"));
-                int pot2_notify = Integer.parseInt(profile.getString("pot2_notify"));
-                int wl_notify = Integer.parseInt(profile.getString("wl_notify"));
-                int l_notify = Integer.parseInt(profile.getString("l_notify"));
-                int relays_notify = Integer.parseInt(profile.getString("relays_notify"));
-                int pumps_notify = Integer.parseInt(profile.getString("pumps_notify"));
+
+                ContentValues cv = new ContentValues();
+
+
+                cv.put(MyContentProvider.KEY_PREF_CTRL_ID, profile.getString("ctrl_id"));
+                cv.put(MyContentProvider.KEY_PREF_VERSION, Integer.parseInt(profile.getString("version")));
+                cv.put(MyContentProvider.KEY_PREF_T_MAX, Integer.parseInt(profile.getString("t_max")));
+                cv.put(MyContentProvider.KEY_PREF_T_MIN, Integer.parseInt(profile.getString("t_min")));
+                cv.put(MyContentProvider.KEY_PREF_H_MAX, Integer.parseInt(profile.getString("h_max")));
+                cv.put(MyContentProvider.KEY_PREF_H_MIN, Integer.parseInt(profile.getString("h_min")));
+                cv.put(MyContentProvider.KEY_PREF_POT1_H_MAX, Integer.parseInt(profile.getString("pot1_h_max")));
+                cv.put(MyContentProvider.KEY_PREF_POT1_H_MIN, Integer.parseInt(profile.getString("pot1_h_min")));
+                cv.put(MyContentProvider.KEY_PREF_POT2_H_MAX, Integer.parseInt(profile.getString("pot2_h_max")));
+                cv.put(MyContentProvider.KEY_PREF_POT2_H_MIN, Integer.parseInt(profile.getString("pot2_h_min")));
+                cv.put(MyContentProvider.KEY_PREF_WL_MAX, Integer.parseInt(profile.getString("wl_max")));
+                cv.put(MyContentProvider.KEY_PREF_WL_MIN, Integer.parseInt(profile.getString("wl_min")));
+                cv.put(MyContentProvider.KEY_PREF_ALL_NOTIFY, Integer.parseInt(profile.getString("all_notify")));
+                cv.put(MyContentProvider.KEY_PREF_T_NOTIFY, Integer.parseInt(profile.getString("t_notify")));
+                cv.put(MyContentProvider.KEY_PREF_H_NOTIFY, Integer.parseInt(profile.getString("h_notify")));
+                cv.put(MyContentProvider.KEY_PREF_POT1_NOTIFY, Integer.parseInt(profile.getString("pot1_notify")));
+                cv.put(MyContentProvider.KEY_PREF_POT2_NOTIFY, Integer.parseInt(profile.getString("pot2_notify")));
+                cv.put(MyContentProvider.KEY_PREF_WL_NOTIFY, Integer.parseInt(profile.getString("wl_notify")));
+                cv.put(MyContentProvider.KEY_PREF_L_NOTIFY, Integer.parseInt(profile.getString("l_notify")));
+                cv.put(MyContentProvider.KEY_PREF_RELAYS_NOTIFY, Integer.parseInt(profile.getString("relays_notify")));
+                cv.put(MyContentProvider.KEY_PREF_PUMPS_NOTIFY, Integer.parseInt(profile.getString("pumps_notify")));
+
+
+                int period = Integer.parseInt(profile.getString("period"));
+                String sound = profile.getString("sound");
+                String vibrate = profile.getString("vibrate");
+                int color = Integer.parseInt(profile.getString("color"));
+
+                Uri default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+                if(period==0)period=900;
+                if(sound.length()==0)sound=String.valueOf(default_sound_uri);
+                if(vibrate.length()==0)vibrate="Short";
+                if(color==0)color=-16711936;
+
+
+                cv.put(MyContentProvider.KEY_PREF_PERIOD, period);
+                cv.put(MyContentProvider.KEY_PREF_SOUND, sound);
+                cv.put(MyContentProvider.KEY_PREF_VIBRATE, vibrate);
+                cv.put(MyContentProvider.KEY_PREF_COLOR, color);
 
 
 
-                return new Preferences(ctrl_id,t_max,t_min,h_max,h_min,
-                        pot1_h_max,pot1_h_min,pot2_h_max,pot2_h_min,wl_max,wl_min,all_notify,
-                        t_notify,h_notify,pot1_notify,pot2_notify,wl_notify,l_notify,
-                        relays_notify, pumps_notify);
+
+                return cv;
                 //db.createPref(preference);
 
 
@@ -74,7 +95,7 @@ public class JSONHandler
         }
         return null;
     }
-    public Dev_profile ParseJSONDevProfile(String JSONString) {
+    public ContentValues ParseJSONDevProfile(String JSONString) {
         try {
             JSONObject json = new JSONObject(JSONString);
             int success;
@@ -92,7 +113,7 @@ public class JSONHandler
 
                 // получаем обьекты с JSON Array
                 //int ctrl_id = Integer.parseInt(dev_profile_json.getString("ctrl_id"));
-                String ctrl_id = dev_profile_json.getString("ctrl_id");
+                /*String ctrl_id = dev_profile_json.getString("ctrl_id");
                 int light_control = Integer.parseInt(dev_profile_json.getString("light_control"));
                 int t_control = Integer.parseInt(dev_profile_json.getString("t_control"));
                 int h_control = Integer.parseInt(dev_profile_json.getString("h_control"));
@@ -104,11 +125,26 @@ public class JSONHandler
                 int pump2_control = Integer.parseInt(dev_profile_json.getString("pump2_control"));
                 int water_control = Integer.parseInt(dev_profile_json.getString("water_control"));
                 int auto_watering1 = Integer.parseInt(dev_profile_json.getString("auto_watering1"));
-                int auto_watering2 = Integer.parseInt(dev_profile_json.getString("auto_watering2"));
+                int auto_watering2 = Integer.parseInt(dev_profile_json.getString("auto_watering2"));*/
 
-                return new Dev_profile(ctrl_id,light_control,t_control,h_control,
-                        pot1_control,pot2_control,relay1_control,relay2_control,pump1_control,pump2_control,
-                        water_control,auto_watering1,auto_watering2);
+                ContentValues cv = new ContentValues();
+                cv.put(MyContentProvider.KEY_DEV_CTRL_ID,dev_profile_json.getString("ctrl_id"));
+                cv.put(MyContentProvider.KEY_DEV_LIGHT_CONTROL,Integer.parseInt(dev_profile_json.getString("light_control")));
+                cv.put(MyContentProvider.KEY_DEV_T_CONTROL,Integer.parseInt(dev_profile_json.getString("t_control")));
+                cv.put(MyContentProvider.KEY_DEV_H_CONTROL,Integer.parseInt(dev_profile_json.getString("h_control")));
+                cv.put(MyContentProvider.KEY_DEV_POT1_CONTROL,Integer.parseInt(dev_profile_json.getString("pot1_control")));
+                cv.put(MyContentProvider.KEY_DEV_POT2_CONTROL,Integer.parseInt(dev_profile_json.getString("pot2_control")));
+                cv.put(MyContentProvider.KEY_DEV_RELAY1_CONTROL,Integer.parseInt(dev_profile_json.getString("relay1_control")));
+                cv.put(MyContentProvider.KEY_DEV_RELAY2_CONTROL,Integer.parseInt(dev_profile_json.getString("relay2_control")));
+                cv.put(MyContentProvider.KEY_DEV_PUMP1_CONTROL,Integer.parseInt(dev_profile_json.getString("pump1_control")));
+                cv.put(MyContentProvider.KEY_DEV_PUMP2_CONTROL,Integer.parseInt(dev_profile_json.getString("pump2_control")));
+                cv.put(MyContentProvider.KEY_DEV_WATER_CONTROL,Integer.parseInt(dev_profile_json.getString("water_control")));
+                cv.put(MyContentProvider.KEY_DEV_AUTO_WATERING1,Integer.parseInt(dev_profile_json.getString("auto_watering1")));
+                cv.put(MyContentProvider.KEY_DEV_AUTO_WATERING2,Integer.parseInt(dev_profile_json.getString("auto_watering2")));
+                cv.put(MyContentProvider.KEY_DEV_PUMP_TIME,Integer.parseInt(dev_profile_json.getString("pump_time")));
+
+
+                return cv;
 
             }else{
                 Log.d(LOG_TAG, "Данные не найдены!");
@@ -119,7 +155,7 @@ public class JSONHandler
         return null;
     }
 
-    public SystemState ParseJSONSystemState(String JSONString) {
+    public ContentValues ParseJSONSystemState(String JSONString) {
         try {
             JSONObject json = new JSONObject(JSONString);
             int success;
@@ -137,7 +173,7 @@ public class JSONHandler
 
                 // получаем обьекты с JSON Array
                 //int ctrl_id = Integer.parseInt(dev_profile_json.getString("ctrl_id"));
-                String ctrl_id = system_state_json.getString("ctrl_id");
+                /*String ctrl_id = system_state_json.getString("ctrl_id");
                 int light_state = Integer.parseInt(system_state_json.getString("light_state"));
                 int t = Integer.parseInt(system_state_json.getString("t"));
                 int h = Integer.parseInt(system_state_json.getString("h"));
@@ -148,11 +184,25 @@ public class JSONHandler
                 int pump1_state = Integer.parseInt(system_state_json.getString("pump2_state"));
                 int pump2_state = Integer.parseInt(system_state_json.getString("pump2_state"));
                 int water_level = Integer.parseInt(system_state_json.getString("water_level"));
-                String date = system_state_json.getString("date");
+                String date = system_state_json.getString("date");*/
 
-                 return new SystemState(ctrl_id,light_state,t,h,
-                        pot1_h,pot2_h,relay1_state,relay2_state,pump1_state,pump2_state,
-                        water_level, date);
+                ContentValues cv = new ContentValues();
+                cv.put(MyContentProvider.KEY_MAIN_CTRL_ID,system_state_json.getString("ctrl_id"));
+                cv.put(MyContentProvider.KEY_MAIN_LIGHT_STATE,Integer.parseInt(system_state_json.getString("light_state")));
+                cv.put(MyContentProvider.KEY_MAIN_T,Integer.parseInt(system_state_json.getString("t")));
+                cv.put(MyContentProvider.KEY_MAIN_H,Integer.parseInt(system_state_json.getString("h")));
+                cv.put(MyContentProvider.KEY_MAIN_POT1_H,Integer.parseInt(system_state_json.getString("pot1_h")));
+                cv.put(MyContentProvider.KEY_MAIN_POT2_H,Integer.parseInt(system_state_json.getString("pot2_h")));
+                cv.put(MyContentProvider.KEY_MAIN_RELAY1_STATE,Integer.parseInt(system_state_json.getString("relay1_state")));
+                cv.put(MyContentProvider.KEY_MAIN_RELAY2_STATE,Integer.parseInt(system_state_json.getString("relay2_state")));
+                cv.put(MyContentProvider.KEY_MAIN_PUMP1_STATE,Integer.parseInt(system_state_json.getString("pump1_state")));
+                cv.put(MyContentProvider.KEY_MAIN_PUMP2_STATE,Integer.parseInt(system_state_json.getString("pump2_state")));
+                cv.put(MyContentProvider.KEY_MAIN_WATER_LEVEL,Integer.parseInt(system_state_json.getString("water_level")));
+                cv.put(MyContentProvider.KEY_MAIN_DATE,system_state_json.getString("date"));
+
+
+
+                return cv;
             }else{
                 Log.d(LOG_TAG, "Данные не найдены!");
             }

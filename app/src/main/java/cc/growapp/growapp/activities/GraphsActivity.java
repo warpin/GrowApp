@@ -30,12 +30,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import cc.growapp.growapp.DataBroker;
-import cc.growapp.growapp.database.DatabaseHelper;
-import cc.growapp.growapp.database.Dev_profile;
+import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.R;
 
 
@@ -60,7 +56,7 @@ public class GraphsActivity extends AppCompatActivity implements
     String hash, controller_id;
 
     // Database Helper
-    DatabaseHelper db;
+    MyContentProvider db;
 
     // Progress Dialog
     private ProgressDialog pDialog;
@@ -85,7 +81,8 @@ public class GraphsActivity extends AppCompatActivity implements
 
         sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
         hash = sPref.getString("hash", "");
-        db = new DatabaseHelper(getApplicationContext());
+        /*TODO Content Provider
+        db = new MyContentProvider(getApplicationContext());*/
 
         Intent intent = getIntent();
         controller_id = intent.getStringExtra("controller_id");
@@ -487,6 +484,7 @@ public class GraphsActivity extends AppCompatActivity implements
         //Log.d(LOG_TAG, "Spinner [0]=" + param_spinner_data[0]);
         // адаптер
         //Выцепляем с базы, какие компоненты системы нам доступны
+        /*TODO Content Provider
         Dev_profile dev_profile = db.getDevProfile(controller_id);
         //Log.d("Tag Name", dev_profile.getTagName());
         int l_control= dev_profile.get_light_control();
@@ -509,7 +507,7 @@ public class GraphsActivity extends AppCompatActivity implements
         if(pot2_control!=0)params_names_list.add(getString(R.string.pot2_hum));
         if(custom_control!=0)params_names_list.add(getString(R.string.water_level));
 
-        param_spinner_data = params_names_list.toArray(new String[params_names_list.size()]);
+        param_spinner_data = params_names_list.toArray(new String[params_names_list.size()]);*/
 
         //Log.d(LOG_TAG, "Spinner [0]=" + ctrl_spinner_data[0]);
         // адаптер

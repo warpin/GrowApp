@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.v4.content.WakefulBroadcastReceiver;
 import android.util.Log;
 
 
@@ -15,7 +16,7 @@ import java.net.InetAddress;
 import cc.growapp.growapp.services.BackgroundService;
 
 
-public class BootAndUpdateReceiver extends BroadcastReceiver {
+public class BootAndUpdateReceiver extends WakefulBroadcastReceiver {
     String LOG_TAG="Service";
 
     private static final String TAG = "BootAndUpdateReceiver";

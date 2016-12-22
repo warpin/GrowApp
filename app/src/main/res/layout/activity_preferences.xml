@@ -16,35 +16,92 @@
         android:layout_width="match_parent"
         android:layout_height="0px" />
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:weightSum="1"
-        android:id="@+id/linearLayout2"
-
+        android:layout_height="match_parent"
         android:orientation="horizontal"
-        android:padding="10dp"
-        android:layout_gravity="center_horizontal|bottom">
-        <Button
-            android:id="@+id/btn_cancelpref"
-            android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:onClick="CancelPref"
-            android:text="@string/cancel"
-            android:layout_margin="5dp"
-            android:layout_weight="0.5"
-            />
+        >
 
-        <Button
-            android:id="@+id/btn_savepref"
-            android:layout_height="wrap_content"
+        <TextView
             android:layout_width="match_parent"
-            android:onClick="SavePref"
-            android:text="@string/save"
-            android:layout_margin="5dp"
-            android:layout_weight="0.5"
-            />
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/notif_pref"
+            android:id="@+id/pref_tv_notif"
+            android:padding="10dp"
+            android:clickable="true"
+            android:onClick="startCommonPrefActivity"/>
+        <View style="@style/Divider" android:layout_below="@id/pref_tv_notif" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/pref_crit_notif"
+            android:id="@+id/pref_tv_crit"
+            android:layout_below="@+id/pref_tv_notif"
+            android:padding="10dp"
+            android:clickable="true"
+            android:onClick="startCritPrefActivity"
+             />
+        <View style="@style/Divider" android:layout_below="@id/pref_tv_crit" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/auto_watering_pref"
+            android:id="@+id/pref_tv_aw"
+            android:layout_below="@+id/pref_tv_crit"
+            android:padding="10dp"
+            android:clickable="true"
+            android:onClick="startAWPrefActivity"
+             />
+        <View style="@style/Divider" android:layout_below="@id/pref_tv_aw" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/themes"
+            android:id="@+id/pref_tv_theme"
+            android:layout_below="@+id/pref_tv_aw"
+            android:padding="10dp"
+            android:clickable="true"
+            android:onClick="startThemePrefActivity"
+             />
+        <View style="@style/Divider" android:layout_below="@id/pref_tv_theme"
+            android:id="@+id/view3" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:clickable="true"
+            android:onClick="startAccountPrefActivity"
+            android:layout_below="@+id/pref_tv_theme"
+            android:id="@+id/pref_ll_account"
+            android:padding="10dp">
 
-    </LinearLayout>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/imageView"
+                android:src="@drawable/ic_profile_32"
+                android:contentDescription="@string/account"
+                android:layout_gravity="center_vertical"
+                 />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="@string/account"
+                android:id="@+id/pref_tv_account"
+                android:padding="10dp"
+                 />
+        </LinearLayout>
+        <View style="@style/Divider" android:layout_below="@id/pref_ll_account"
+            android:id="@+id/view8" />
+
+
+
+    </RelativeLayout>
 
 </LinearLayout>

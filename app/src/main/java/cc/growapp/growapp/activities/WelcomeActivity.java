@@ -1,13 +1,11 @@
 package cc.growapp.growapp.activities;
 
 import android.app.AlertDialog;
-import android.app.Application;
-import android.app.Notification;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -28,18 +26,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.DataBroker;
-import cc.growapp.growapp.database.Controllers;
-import cc.growapp.growapp.database.DatabaseHelper;
-import cc.growapp.growapp.database.Dev_profile;
-import cc.growapp.growapp.database.Preferences;
-import cc.growapp.growapp.database.SystemState;
+import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.JSONHandler;
 import cc.growapp.growapp.R;
-
-import org.acra.*;
-import org.acra.annotation.*;
-
 
 
 public class WelcomeActivity extends AppCompatActivity implements
@@ -52,21 +43,14 @@ public class WelcomeActivity extends AppCompatActivity implements
 
 
 
-    String LOG_TAG="GrowApp";
+    String LOG_TAG="WelcomeActivity";
 
     SharedPreferences sPref;
-    public static final String APP_PREFERENCES = "GrowAppSettings";
-
-    // Database Helper
-    DatabaseHelper db;
 
     String hash;
 
     int ctrls_count =0;
     int ctrls_processed=0;
-
-    // Progress Dialog
-    //private ProgressDialog pDialog;
 
     String saved_user,saved_pass;
     String session_user,session_pass;
@@ -86,21 +70,20 @@ public class WelcomeActivity extends AppCompatActivity implements
                     //WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
 
-        db = new DatabaseHelper(getApplicationContext());
-
-        //Очищаем БД
-        db.onTrancuate(db.getWritableDatabase());
 
 
+        cleaning_db();
         proc = (TextView) findViewById(R.id.welcome_tv_proc);
         proc.setText("");
 
-        sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
+        sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES,MODE_PRIVATE);
         saved_user = sPref.getString("user", "");
         saved_pass = sPref.getString("pass", "");
-        if(!sPref.contains("RingTone"))sPref.edit().putString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))).apply();
+
+
+        /*if(!sPref.contains("RingTone"))sPref.edit().putString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))).apply();
         if(!sPref.contains("Vibrator"))sPref.edit().putString("Vibrator", "Short").apply();
-        if(!sPref.contains("NotifColor"))sPref.edit().putInt("NotifColor", -16711936).apply();
+        if(!sPref.contains("NotifColor"))sPref.edit().putInt("NotifColor", -16711936).apply();*/
 
 
         if(!saved_user.equals("") && !saved_pass.equals("")){
@@ -124,13 +107,14 @@ public class WelcomeActivity extends AppCompatActivity implements
         super.onResume();
         session_user="";
         session_pass="";
+        proc.setText("");
     }
 
     public void SignIn(View v) {
         //proc.setText("");
         if(!session_user.isEmpty() && !session_pass.isEmpty()){
             if(check_network()){
-                db.onTrancuate(db.getWritableDatabase());
+                cleaning_db();
 
                 ctrls_count =0;
                 ctrls_processed=0;
@@ -188,6 +172,7 @@ public class WelcomeActivity extends AppCompatActivity implements
                     btn_signin.invalidate();
                     btn_signin.setPressed(false);
                     btn_signin.invalidate();
+
 
                 }
             });
@@ -276,13 +261,14 @@ public class WelcomeActivity extends AppCompatActivity implements
 
     @Override
     public void onAuthCompleteMethod(String s) {
-        if(s!=null && !("0".equals(s))){
+        Log.d(LOG_TAG, "Callback, user hash: " + s);
+        if(s!=null){
             //pDialog.show();
             //pDialog.setMessage("Аутенфикация: успех");
             proc.setText("Аутенфикация: успех");
             //pDialog.setMessage(getString(R.string.d_ctrls));
-            Log.d(LOG_TAG, "Callback, user hash: " + s);
-            sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
+
+            sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
             SharedPreferences.Editor ed = sPref.edit();
             ed.putString("hash", s);
             ed.apply();
@@ -292,12 +278,8 @@ public class WelcomeActivity extends AppCompatActivity implements
         } else {
             session_user="";
             session_pass="";
-            if("0".equals(s)){
-                //pDialog.dismiss();
-                Toast.makeText(this,getString(R.string.no_auth), Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
-            }
+            proc.setText("");
+            Toast.makeText(this,getString(R.string.no_auth), Toast.LENGTH_SHORT).show();
 
         }
     }
@@ -338,8 +320,16 @@ public class WelcomeActivity extends AppCompatActivity implements
                         Log.d(LOG_TAG, i + " AN контроллера = " + ctrl_an);
 
                         //Запихиваем в БД
-                        Controllers controller = new Controllers(ctrl_id,ctrl_name,ctrl_an);
-                        db.createCtrl(controller);
+                        //Controllers controller = new Controllers(ctrl_id,ctrl_name,ctrl_an);
+                        //db.createCtrl(controller);
+
+                        ContentValues cv = new ContentValues();
+                        cv.put(MyContentProvider.KEY_CTRL_ID, ctrl_id);
+                        cv.put(MyContentProvider.KEY_CTRL_NAME, ctrl_name);
+                        cv.put(MyContentProvider.KEY_CTRL_AN, ctrl_an);
+                        Uri newUri = getContentResolver().insert(MyContentProvider.CTRLS_CONTENT_URI, cv);
+                        Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
 
                         //Запускаем процесс получения настроек пользователя
                         new DataBroker.get_pref_profile(this).execute(ctrl_id, hash);
@@ -349,7 +339,7 @@ public class WelcomeActivity extends AppCompatActivity implements
                         new DataBroker.get_system_state(this).execute(ctrl_id, hash);
                     }
                     // Don't forget to close database connection
-                    db.closeDB();
+
                 }else{
                     //pDialog.dismiss();
                     //Если контроллеров не нашли, переходим в аккаунт инфо, чтоб добавить контроллеры
@@ -373,11 +363,16 @@ public class WelcomeActivity extends AppCompatActivity implements
     public void onGetPrefProfileCompleteMethod(String s) {
         Log.d(LOG_TAG, "Callback, pref data: " + s);
         if(s!=null){
-            Preferences result= new JSONHandler().ParseJSONProfile(s);
-            if(result!=null){
+            ContentValues result= new JSONHandler().ParseJSONProfile(s);
+            if(result.size()>0){
                 //pDialog.setMessage("Получение настроек: успех");
+                Uri newUri = getContentResolver().insert(MyContentProvider.PREF_CONTENT_URI, result);
+                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
                 proc.setText("Настройка пользователя: успех");
-                db.createPref(result);
+
+
+
             }
         }
     }
@@ -385,11 +380,14 @@ public class WelcomeActivity extends AppCompatActivity implements
     public void onGetDevProfileCompleteMethod(String s) {
         Log.d(LOG_TAG, "Callback, dev profile: " + s);
         if(s!=null){
-            Dev_profile result= new JSONHandler().ParseJSONDevProfile(s);
-            if(result!=null){
-                //pDialog.setMessage("Получение профиля устройства: успех");
+            ContentValues result= new JSONHandler().ParseJSONDevProfile(s);
+            if(result.size()>0){
+
                 proc.setText("Профиль устройства: успех");
-                db.createDevProfile(result);
+                Uri newUri = getContentResolver().insert(MyContentProvider.DEV_PROFILE_CONTENT_URI, result);
+                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
+
             }
         }
     }
@@ -397,12 +395,14 @@ public class WelcomeActivity extends AppCompatActivity implements
     public void onGetSystemStateCompleteMethod(String s) {
         Log.d(LOG_TAG, "Callback, system state: " + s);
         if(s!=null){
-            //pDialog.setMessage(getString(R.string.success));
-            SystemState result= new JSONHandler().ParseJSONSystemState(s);
+
+            ContentValues result= new JSONHandler().ParseJSONSystemState(s);
             if(result!=null){
-                //pDialog.setMessage("Получение данных датчиков: успех");
+
                 proc.setText("Данные датчиков: успех");
-                db.createSystemState(result);
+                Uri newUri = getContentResolver().insert(MyContentProvider.MAIN_CONTENT_URI, result);
+                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
             }
         }
 
@@ -422,6 +422,10 @@ public class WelcomeActivity extends AppCompatActivity implements
         if(s!=null){
             if(s.equals("success")){
                 Toast.makeText(this, "Регистрация завершена успешна", Toast.LENGTH_SHORT).show();
+
+                //Очищаем БД
+                cleaning_db();
+
                 //Если успешно создан аккаунт, то
                 //Если контроллеров не нашли, переходим в аккаунт инфо, чтоб добавить контроллеры
                 Intent intent = new Intent(WelcomeActivity.this,AccountActivity.class);
@@ -434,6 +438,19 @@ public class WelcomeActivity extends AppCompatActivity implements
         ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
+    }
+
+
+    public void cleaning_db(){
+        //Clearing database
+        int delRows = getContentResolver().delete(MyContentProvider.CTRLS_CONTENT_URI, null, null);
+        Log.d(LOG_TAG, "Controllers deleted: " + delRows);
+        delRows = getContentResolver().delete(MyContentProvider.PREF_CONTENT_URI, null, null);
+        Log.d(LOG_TAG, "Preferences deleted: " + delRows);
+        delRows = getContentResolver().delete(MyContentProvider.DEV_PROFILE_CONTENT_URI, null, null);
+        Log.d(LOG_TAG, "Device profile deleted: " + delRows);
+        delRows = getContentResolver().delete(MyContentProvider.MAIN_CONTENT_URI, null, null);
+        Log.d(LOG_TAG, "Main deleted: " + delRows);
     }
 
 

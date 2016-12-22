@@ -3,8 +3,11 @@ package cc.growapp.growapp.activities;
 
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -18,14 +21,9 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.List;
-
 import cc.growapp.growapp.DataBroker;
-import cc.growapp.growapp.database.Controllers;
-import cc.growapp.growapp.database.DatabaseHelper;
-import cc.growapp.growapp.database.Dev_profile;
-import cc.growapp.growapp.database.Preferences;
-import cc.growapp.growapp.database.SystemState;
+import cc.growapp.growapp.GrowappConstants;
+import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.JSONHandler;
 import cc.growapp.growapp.R;
 
@@ -37,15 +35,13 @@ public class AccountActivity extends AppCompatActivity implements
         DataBroker.get_pref_profile.onGetPrefVersionComplete {
 
     SharedPreferences sPref;
-    // это будет именем файла настроек
-    public static final String APP_PREFERENCES = "GrowAppSettings";
-    String LOG_TAG = "GrowApp";
+    String LOG_TAG = "AccountActivity";
 
     // Progress Dialog
     private ProgressDialog pDialog;
 
     // Database Helper
-    DatabaseHelper db;
+    MyContentProvider db;
     TableLayout tl;
 
 
@@ -56,10 +52,7 @@ public class AccountActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_account);
 
-
-
-        db = new DatabaseHelper(getApplicationContext());
-        sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
+        sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES,MODE_PRIVATE);
         pDialog = new ProgressDialog(AccountActivity.this);
 
         if(getSupportActionBar()!=null){
@@ -71,17 +64,31 @@ public class AccountActivity extends AppCompatActivity implements
 
         tl = (TableLayout) findViewById(R.id.info_tl_dev);
 
-        if(db.getAllCtrls()!=null){
-            List<Controllers> allCtrls = db.getAllCtrls();
-            for (Controllers ctrl : allCtrls) {
-                //Log.d(LOG_TAG, "CTRLS Name = "+ctrl.get_name());
 
-                Log.d(LOG_TAG, "ID контроллера: " + String.valueOf(ctrl.get_ctrl_id()));
-                Log.d(LOG_TAG, "Name контроллера: " + ctrl.get_name());
-                Log.d(LOG_TAG, "AN контроллера: " + ctrl.get_an());
-                add_row_to_table(String.valueOf(ctrl.get_ctrl_id()), ctrl.get_name(), ctrl.get_an());
+        Cursor cursor = getContentResolver().query(MyContentProvider.CTRLS_CONTENT_URI, null, null, null, null);
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()){
+                do{
+                    String ctrl_id = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_ID));
+                    String ctrl_name = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_NAME));
+                    String ctrl_an = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_AN));
+
+                    Log.d(LOG_TAG, "Device ID: " + ctrl_id);
+                    Log.d(LOG_TAG, "Device name: " + ctrl_name);
+                    Log.d(LOG_TAG, "Device AN: " + ctrl_an);
+
+
+                    add_row_to_table(ctrl_id, ctrl_name, ctrl_an);
+
+
+                    // do what ever you want here
+                }while(cursor.moveToNext());
             }
+            cursor.close();
         }
+
+
     }
 
     @Override
@@ -152,9 +159,10 @@ public class AccountActivity extends AppCompatActivity implements
         if(s.equals("success")){
             pDialog.show();
             //Toast.makeText(this,"Успешно добавлено",Toast.LENGTH_SHORT).show();
-
+            /*TODO Content Provider/*TODO Content Provider
             Controllers controller = new Controllers(ctrl_id,ctrl_name,ctrl_an);
-            db.createCtrl(controller);
+
+            db.createCtrl(controller);*/
             add_row_to_table(ctrl_id,ctrl_name,ctrl_an);
 
             //TODO: Дубляж с loginactivity
@@ -207,17 +215,19 @@ public class AccountActivity extends AppCompatActivity implements
     }
 
 
-    //TODO: Дубляж с loginactivity
+    //TODO: Дубляж с WelomeActivity
 
     @Override
     public void onGetPrefProfileCompleteMethod(String s) {
         Log.d(LOG_TAG, "Callback, pref data: " + s);
         if(s!=null){
 
-            Preferences result= new JSONHandler().ParseJSONProfile(s);
+            ContentValues result= new JSONHandler().ParseJSONProfile(s);
             if(result!=null){
                 pDialog.setMessage("Получение настроек: успех");
-                db.createPref(result);
+                Uri newUri = getContentResolver().insert(MyContentProvider.PREF_CONTENT_URI, result);
+                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
             } else {
                 pDialog.dismiss();
                 Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
@@ -231,10 +241,13 @@ public class AccountActivity extends AppCompatActivity implements
         if(s!=null){
 
             Log.d(LOG_TAG, "Callback, dev profile: " + s);
-            Dev_profile result= new JSONHandler().ParseJSONDevProfile(s);
-            if(result!=null){
+            ContentValues result= new JSONHandler().ParseJSONDevProfile(s);
+            if(result.size()>0){
                 pDialog.setMessage("Получение профиля устройства: успех");
-                db.createDevProfile(result);
+
+                Uri newUri = getContentResolver().insert(MyContentProvider.DEV_PROFILE_CONTENT_URI, result);
+                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
             } else {
                 pDialog.dismiss();
                 Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
@@ -249,10 +262,13 @@ public class AccountActivity extends AppCompatActivity implements
             //pDialog.setMessage(getString(R.string.success));
 
             Log.d(LOG_TAG, "Callback, system state: " + s);
-            SystemState result= new JSONHandler().ParseJSONSystemState(s);
-            if(result!=null){
+            ContentValues result= new JSONHandler().ParseJSONSystemState(s);
+            if(result.size()>0){
                 pDialog.setMessage("Получение данных датчиков: успех");
-                db.createSystemState(result);
+
+                Uri newUri = getContentResolver().insert(MyContentProvider.MAIN_CONTENT_URI, result);
+                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
             } else {
                 pDialog.dismiss();
                 Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();

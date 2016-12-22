@@ -39,7 +39,7 @@ import java.util.concurrent.SynchronousQueue;
 
 public class DataBroker  {
 
-    static String LOG_TAG="GrowApp";
+    static String LOG_TAG="DataBroker";
 
     // -------------------------- Аутенфикация пользователя и получения хеша -----------------------
     public static class authentication extends AsyncTask<String,Void,String> {
@@ -310,6 +310,9 @@ public class DataBroker  {
     // --------------------- Запись настроек во внешнюю БД -----------------------------------------
     public static class save_user_profile extends AsyncTask<String,Void,String> {
         static Map<String,Object> params = new HashMap<>();
+
+
+
         public interface onSaveUserProfileComplete {
             void onSaveUserProfileCompleteMethod(String s);
         }
@@ -346,6 +349,10 @@ public class DataBroker  {
                 params.put("l_notify", post_params[18]);
                 params.put("relays_notify", post_params[19]);
                 params.put("pumps_notify", post_params[20]);
+                params.put("period", post_params[21]);
+                params.put("sound", post_params[22]);
+                params.put("vibrate", post_params[23]);
+                params.put("color", post_params[24]);
 
                 return downloadUrl(url,params);
             } catch (IOException e) {

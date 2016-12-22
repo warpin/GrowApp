@@ -1,21 +1,22 @@
 package cc.growapp.growapp.services;
 
 import android.app.AlarmManager;
+import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.Service;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
+import android.database.ContentObserver;
+import android.database.Cursor;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.media.RingtoneManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.IBinder;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
@@ -27,21 +28,16 @@ import org.json.JSONObject;
 
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.Objects;
 
 import cc.growapp.growapp.DataBroker;
+import cc.growapp.growapp.GrowappConstants;
+import cc.growapp.growapp.JSONHandler;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.activities.MainActivity;
-import cc.growapp.growapp.database.Controllers;
-import cc.growapp.growapp.database.DatabaseHelper;
-import cc.growapp.growapp.database.Dev_profile;
-import cc.growapp.growapp.database.Preferences;
-import cc.growapp.growapp.database.SystemState;
+import cc.growapp.growapp.database.MyContentProvider;
 
-import static android.net.ConnectivityManager.TYPE_MOBILE;
-
-public class BackgroundService extends Service implements
+public class BackgroundService extends IntentService implements
         DataBroker.get_system_state.onGetSystemStateComplete
 {
 
@@ -49,45 +45,28 @@ public class BackgroundService extends Service implements
     NotificationManager nm;
     SharedPreferences sPref;
     int period;
-    String ringtone;
+    int version;
+    String vibrator_type,ringtone_title,color_name,sound;
     int color;
     long[] vibrate;
-    public static final String APP_PREFERENCES = "GrowAppSettings";
-    // JSON parser class
     private int notif_id = 0;
-
-    // Database Helper
-    DatabaseHelper db;
-
-    static final public String ACTION = "cc.growapp.growapp.InfoActivity.ACTION";
-    static final public String START_TIME = "cc.growapp.growapp.InfoActivity.START_TIME";
-    static final public String LAST_TIME = "cc.growapp.growapp.InfoActivity.LAST_TIME";
-
-    long REPEAT_TIME;
     long start_time;
-    long ServiceStartAt,ServiceLastStartAt;
+    String controller_id;
 
+
+
+    public BackgroundService() {
+        super("GrowApp service");
+    }
 
     @Override
-    public IBinder onBind(Intent intent) {
-        //throw new UnsupportedOperationException("Not yet implemented");
-        return null;
+    protected void onHandleIntent(Intent intent) {
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        //broadcaster = LocalBroadcastManager.getInstance(this);
-    }
 
-
-    public void sendResult(long start_time,long last_time) {
-        Intent intent = new Intent(ACTION);
-        //if(message != null){
-            intent.putExtra(START_TIME, start_time);
-            intent.putExtra(LAST_TIME, last_time);
-        //}
-        sendBroadcast(intent);
     }
 
 
@@ -96,71 +75,131 @@ public class BackgroundService extends Service implements
         Log.d(LOG_TAG, "Service initialization!");
         nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        db = new DatabaseHelper(getApplicationContext());
+        String emergency_ctrl_id = intent.getStringExtra("controller_id");
+        Boolean emergency_call = intent.getBooleanExtra("emergency_call",false);
+        intent.removeExtra("emergency_call");
+        //intent.removeExtra("controller_id");
 
-        sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
-        period = sPref.getInt("ServicePeriod", 900);
-        ServiceStartAt = sPref.getLong("ServiceStartAt", 0);
-        ServiceLastStartAt = sPref.getLong("ServiceLastStartAt", 0);
-
-        String default_ringtone = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString();
-        ringtone = sPref.getString("RingTone",default_ringtone);
-        String vibrator_type = sPref.getString("Vibrator","Short");
-        color = sPref.getInt("NotifColor",-16711936);
-        switch(vibrator_type){
-            case "No":vibrate= new long[] {0};break;
-            case "Short":vibrate= new long[] {1000,1000};break;
-            case "Long":vibrate= new long[] {1000,1000,1000,1000};break;
-        }
-
-        REPEAT_TIME = 1000 * period;
-        start_time = System.currentTimeMillis() + REPEAT_TIME;
+        long current_time =  System.currentTimeMillis();
 
 
-        Log.d(LOG_TAG,"----------------------------------------------------");
-        Log.d(LOG_TAG,"Service period :"+String.valueOf(period)+" second(s)");
-        Log.d(LOG_TAG, "Service starts at: " + new Date(ServiceStartAt));
-        Log.d(LOG_TAG, "Service last start at: " + new Date(ServiceLastStartAt));
-        Log.d(LOG_TAG, "Difference: " + (ServiceStartAt-ServiceLastStartAt));
 
-        if((ServiceStartAt-ServiceLastStartAt)>=REPEAT_TIME){
-            sPref.edit().putLong("ServiceLastStartAt", ServiceStartAt).apply();
-            Log.d(LOG_TAG, "Service created!");
-            try {
-                GetControllersListFromSQL();
-            } catch (Exception e) {
-                Log.d(LOG_TAG,"--- GetControllersListFromSQL() Failed ---");
+        /*service.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + period * 1000,
+                period * 1000, pending);
+*/
+        //Запишем в SP, для информации, когда запустится сервис
+        long earliest_time=0;
+
+        Cursor cursor_local = getContentResolver().query(MyContentProvider.LOCAL_CONTENT_URI, null, null, null, null);
+        if(cursor_local!=null) {
+            if (cursor_local.moveToFirst()) {
+                do {
+                    controller_id = cursor_local.getString(cursor_local.getColumnIndexOrThrow(MyContentProvider.KEY_LOCAL_CTRL_ID));
+                    start_time = Long.parseLong(cursor_local.getString(cursor_local.getColumnIndexOrThrow(MyContentProvider.KEY_LOCAL_START_TIME)));
+                    //earliest_time=start_time;
+                    Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI+"/"+controller_id), null, null, null, null);
+                    if(cursor_pref!=null) {
+                        if(cursor_pref.moveToFirst()){
+                            period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
+                            if(emergency_call && emergency_ctrl_id.equals(controller_id))period=GrowappConstants.get_data_timeout;
+                        }
+                        cursor_pref.close();
+                    }
+
+
+                    Log.d(LOG_TAG, "-------------------------------------------------");
+                    Log.d(LOG_TAG, "Controller ID: "+controller_id);
+                    Log.d(LOG_TAG, "Service start time: "+ new Date(start_time));
+                    Log.d(LOG_TAG, "Current time: " + new Date(current_time));
+                    Log.d(LOG_TAG, "Period: " + period);
+
+                    //if(start_time==0){
+
+                    //}
+
+                    //Ordering is important
+                    //1 Если время старта, больше чем текущее время + период
+                    Log.d(LOG_TAG, "Diffrence: "+ Math.abs(current_time-start_time) + " Period: "+period*1000);
+
+                    if(start_time==0 || Math.abs(current_time - start_time)>=period*1000 || start_time<current_time){
+
+                        //Обрабатываем контроллер
+                        Log.d(LOG_TAG, "Set new start time for the device: "+ controller_id);
+                        // И его время старта
+
+                        start_time=current_time+period*1000;
+                        Log.d(LOG_TAG, "New start time : "+ new Date(start_time));
+
+                        ContentValues cv = new ContentValues();
+                        cv.put("ctrl_id", controller_id);
+                        cv.put("start_time", String.valueOf(start_time));
+
+                        Uri newUri = ContentUris.withAppendedId(MyContentProvider.LOCAL_CONTENT_URI, Long.parseLong(controller_id));
+                        int cnt = getContentResolver().update(newUri, cv, null, null);
+                        Log.d(LOG_TAG, "Rows updated: " + cnt);
+
+
+                        //Запускаем процесс получения данных датчиков
+                        sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
+                        String hash = sPref.getString("hash", "");
+                        new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
+
+                    } else Log.d(LOG_TAG, "Skipping the device: "+ controller_id);
+                    //2 Но если есть старт тайм меньше или равно 0 или прошлого минимального
+                    // а также больше текущего
+                    // то старт тайм = минимальному
+
+                    if((start_time<earliest_time && start_time>current_time) || earliest_time==0)earliest_time=start_time;
+                    else start_time=earliest_time;
+
+
+                }while (cursor_local.moveToNext());
+                cursor_local.close();
+            }else{
+
+
+                Cursor cursor = getContentResolver().query(MyContentProvider.CTRLS_CONTENT_URI, null, null, null, null);
+                if (cursor != null) {
+                    if (cursor.moveToFirst()) {
+                        do {
+                            String ctrl_id = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_ID));
+                            String ctrl_name = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_NAME));
+                            String ctrl_an = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_AN));
+
+                            Log.d(LOG_TAG, "Fill start time rows for ctrl_id: " + ctrl_id);
+                            Log.d(LOG_TAG, "Current time: " + current_time);
+
+
+                            ContentValues cv = new ContentValues();
+                            cv.put("ctrl_id", ctrl_id);
+                            cv.put("start_time", String.valueOf(start_time));
+
+                            Uri newUri = getContentResolver().insert(MyContentProvider.LOCAL_CONTENT_URI, cv);
+                            Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+                            // do what ever you want here
+                        } while (cursor.moveToNext());
+                    }
+                    cursor.close();
+                }
+
             }
+            AlarmManager alarm = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
+
+            alarm.set(AlarmManager.RTC_WAKEUP, start_time, pending);
+
+            //Запишем в SP, для информации, когда запустится сервис
+            Log.d(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Next start time: " + new Date(start_time));
         }
 
 
-        stopSelf();
-        //return START_REDELIVER_INTENT;
+        sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
+
         return START_NOT_STICKY;
     }
 
 
-    @Override
-    public void onDestroy() {
-        AlarmManager service = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        //Intent i = new Intent(context, MyStartServiceReceiver.class);
-        PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
-        Calendar cal = Calendar.getInstance();
-        // start 30 seconds after boot completed
-        //cal.add(Calendar.SECOND, period);
-        //service.setInexactRepeating(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), REPEAT_TIME, pending);
-
-        service.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + period * 1000,
-                period * 1000, pending);
-
-        //Запишем в SP, для информации, когда запустится сервис
-        Log.d(LOG_TAG, "Next start time: " + new Date(start_time));
-        sPref.edit().putLong("ServiceStartAt", start_time).apply();
-        sendResult(start_time,ServiceLastStartAt);
-
-
-    }
 
 
     void sendNotif(String ctrl_id, String message) {
@@ -176,72 +215,80 @@ public class BackgroundService extends Service implements
         Notification.Builder builder = new Notification.Builder(context);
 
         //Достанем имя контроллера с БД
-        Controllers ctrl = db.getControllerName(ctrl_id);
-        String ctrl_name=ctrl.get_name();
 
-        builder.setContentIntent(pIntent)
-                .setSmallIcon(R.drawable.ic_stat_notify)
-                        // большая картинка
-                .setLargeIcon(BitmapFactory.decodeResource(res, R.drawable.ic_hdpi_72))
-                        //.setTicker(res.getString(R.string.warning)) // текст в строке состояния
-                .setTicker("Уведомление GrowApp")
-                .setWhen(System.currentTimeMillis())
-                .setAutoCancel(true)
-                        //.setContentTitle(res.getString(R.string.notifytitle)) // Заголовок уведомления
-                .setContentTitle("Устройство : " + ctrl_name)
-                        //.setContentText(res.getString(R.string.notifytext))
-                .setContentText(message); // Текст уведомления
+        Cursor cursor = getContentResolver().query(Uri.parse(MyContentProvider.CTRLS_CONTENT_URI+"/"+ctrl_id), null, null, null, null);
+        if(cursor!=null) {
+            cursor.moveToFirst();
+            String ctrl_name = cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_NAME));
+            cursor.close();
 
 
 
-        //Notification notification = builder.getNotification(); // до API 16
-        Notification notification = null;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
-            notification = builder.build();
+            builder.setContentIntent(pIntent)
+                    .setSmallIcon(R.drawable.ic_stat_notify)
+                            // большая картинка
+                    .setLargeIcon(BitmapFactory.decodeResource(res, R.drawable.ic_hdpi_72))
+                            //.setTicker(res.getString(R.string.warning)) // текст в строке состояния
+                    .setTicker("Уведомление GrowApp")
+                    .setWhen(System.currentTimeMillis())
+                    .setAutoCancel(true)
+                            //.setContentTitle(res.getString(R.string.notifytitle)) // Заголовок уведомления
+                    .setContentTitle("Устройство : " + ctrl_name)
+                            //.setContentText(res.getString(R.string.notifytext))
+                    .setContentText(message); // Текст уведомления*/
 
-            //notification.defaults = Notification.DEFAULT_ALL;
-            notification.sound = Uri.parse(ringtone);
-            notification.vibrate = vibrate;
-            notification.ledARGB = color;
-            notification.ledOffMS = 1000;
-            notification.ledOnMS = 1000;
-            notification.flags = notification.flags | Notification.FLAG_SHOW_LIGHTS;
+
+
+            //Notification notification = builder.getNotification(); // до API 16
+            Notification notification = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+                notification = builder.build();
+
+                //notification.defaults = Notification.DEFAULT_ALL;
+                notification.sound = Uri.parse(sound);
+                notification.vibrate = vibrate;
+                notification.ledARGB = color;
+                notification.ledOffMS = 1000;
+                notification.ledOnMS = 1000;
+                notification.flags = notification.flags | Notification.FLAG_SHOW_LIGHTS;
+            }
+
+
+            NotificationManager notificationManager = (NotificationManager) context
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.notify(notif_id, notification);
+            //Если уведомления должны быть уникальны
+            notif_id++;
+
         }
 
 
-        NotificationManager notificationManager = (NotificationManager) context
-                .getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(notif_id, notification);
-        //Если уведомления должны быть уникальны
-        notif_id++;
 
 
     }
-    //TODO: Частиный дубляж с Main Activity
-    // --------------- Загрузка доступных контроллеров с БД ----------------------------
-    public boolean GetControllersListFromSQL() {
 
-        List<Controllers> allCtrls = db.getAllCtrls();
-        for (Controllers ctrl : allCtrls) {
-            String ctrl_id=ctrl.get_ctrl_id();
-            //Log.d(LOG_TAG, "CTRLS Name = "+ctrl.get_name());
-            Log.d(LOG_TAG, "Controller ID: " + String.valueOf(ctrl_id));
-            Log.d(LOG_TAG, "Controller NAME: " + ctrl.get_name());
 
-            //Запускаем процесс получения данных датчиков
-            String hash = sPref.getString("hash", "");
-            new DataBroker.get_system_state(this).execute(String.valueOf(ctrl_id), hash);
-        }
-        db.closeDB();
-        return true;
-    }
 
-    //TODO: Частичный дубляж с Main Activity и LoginActivity
     @Override
     public void onGetSystemStateCompleteMethod(String s) {
 
+        Log.d(LOG_TAG, "Callback, system state: " + s);
+        if(s!=null){
+            ContentValues result= new JSONHandler().ParseJSONSystemState(s);
+            if(result!=null){
 
-        Log.d(LOG_TAG, "Server answer: " + s);
+                //TODO Записывает даже если даты одинаковые, теряется производительность
+                Toast.makeText(this, R.string.app_name, Toast.LENGTH_SHORT).show();
+                Log.d(LOG_TAG, "Callback, for ctrl_id: " + result.getAsString("ctrl_id"));
+                Uri uri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(result.getAsString("ctrl_id")));
+                int cnt = getContentResolver().update(uri, result, null, null);
+                Log.d(LOG_TAG, "Number of device updated: " + cnt);
+
+            }
+        }
+
+
+        /*Log.d(LOG_TAG, "Server answer: " + s);
         if(s!=null){
             Log.d(LOG_TAG, "Callback, system state: " + s);
             try {
@@ -273,105 +320,172 @@ public class BackgroundService extends Service implements
                     int water_level = Integer.parseInt(dev_profile_json.getString("water_level"));
                     String date = dev_profile_json.getString("date");
 
-                    Preferences preferences = db.getPrefProfile(ctrl_id);
-
-                    int saved_t_max = preferences.get_t_max();
-                    int saved_t_min = preferences.get_t_min();
-                    int saved_h_max = preferences.get_h_max();
-                    int saved_h_min = preferences.get_h_min();
-                    int saved_pot1_h_max = preferences.get_pot1_h_max();
-                    int saved_pot1_h_min = preferences.get_pot1_h_min();
-                    int saved_pot2_h_max = preferences.get_pot2_h_max();
-                    int saved_pot2_h_min = preferences.get_pot2_h_min();
-                    int saved_wl_max = preferences.get_wl_max();
-                    int saved_wl_min = preferences.get_wl_min();
-                    boolean saved_all_notify= (preferences.get_all_notify()!=0);
-                    boolean saved_t_notify = (preferences.get_t_notify()!=0);
-                    boolean saved_h_notify = (preferences.get_h_notify()!=0);
-                    boolean saved_pot1_notify = (preferences.get_pot1_notify()!=0);
-                    boolean saved_pot2_notify = (preferences.get_pot2_notify()!=0);
-                    boolean saved_wl_notify = (preferences.get_wl_notify()!=0);
-                    boolean saved_l_notify = (preferences.get_l_notify()!=0);
-                    boolean saved_relays_notify = (preferences.get_relays_notify()!=0);
-                    boolean saved_pumps_notify = (preferences.get_pumps_notify()!=0);
-
-
-                    SystemState state = db.getSystemState(ctrl_id);
-                    int l_result= state.get_light_state();
-                    //int t_result= state.get_t();
-                    //int h_result= state.get_h();
-                    //int pot1_h_result= state.get_pot1_h();
-                    //int pot2_h_result= state.get_pot2_h();
-                    int p1_result= state.get_pump1_state();
-                    int p2_result= state.get_pump2_state();
-                    int relay1_result= state.get_relay1_state();
-                    int relay2_result= state.get_relay2_state();
-                    //int w_result= state.get_water_level();
-                    String date_result= state.get_date();
+/*
 
 
                     //Выцепляем с базы, какие компоненты системы нам доступны
                     //После чего отсылаем уведомления, соответсвующие комплектации
-                    Dev_profile dev_profile = db.getDevProfile(ctrl_id);
-                    //Log.d("Tag Name", dev_profile.getTagName());
-                    int l_control= dev_profile.get_light_control();
-                    int t_control= dev_profile.get_t_control();
-                    int h_control= dev_profile.get_h_control();
-                    int pot1_control= dev_profile.get_pot1_control();
-                    int pot2_control= dev_profile.get_pot2_control();
-                    int pump1_control= dev_profile.get_pump1_control();
-                    int pump2_control= dev_profile.get_pump2_control();
-                    int relay1_control= dev_profile.get_relay1_control();
-                    int relay2_control= dev_profile.get_relay2_control();
-                    int water_control= dev_profile.get_water_control();
+                    Cursor cursor_dev_profile = getContentResolver().query(Uri.parse(MyContentProvider.DEV_PROFILE_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
+                    if(cursor_dev_profile!=null){
+                        cursor_dev_profile.moveToFirst();
+                        l_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
+                        t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
+                        h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
+                        pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
+                        pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
+                        pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
+                        pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
+                        relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
+                        relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
+                        water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
+                        cursor_dev_profile.close();
+                    }
 
-                    Log.d(LOG_TAG, "Date from external DB = " + date);
-                    Log.d(LOG_TAG, "Date from local DB  = " +date_result);
-                    Log.d(LOG_TAG, "t from external DB = " + t);
-                    Log.d(LOG_TAG, "t from local DB = " +saved_t_max);
+                    Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
+                    if(cursor_pref!=null){
+                        cursor_pref.moveToFirst();
+                        //version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
 
-                    if (!saved_all_notify && !date.equals(date_result) && !date_result.isEmpty() && !ctrl_id.equals("")) {
-                        if ((t > saved_t_max || t < saved_t_min) && saved_t_notify && t_control==1)
+                        t_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MIN));
+                        t_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MAX));
+
+
+                        h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MIN));
+                        h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MAX));
+
+
+                        pot1_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MIN));
+                        pot1_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MAX));
+
+
+                        pot2_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MIN));
+                        pot2_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MAX));
+
+
+                        wl_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MIN));
+                        wl_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MAX));
+
+                        l_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_L_NOTIFY))!=0);
+                        t_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_NOTIFY))!=0);
+                        h_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_NOTIFY))!=0);
+                        pot1_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_NOTIFY))!=0);
+                        pot2_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_NOTIFY))!=0);
+                        wl_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_NOTIFY))!=0);
+                        pumps_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PUMPS_NOTIFY))!=0);
+                        relays_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_RELAYS_NOTIFY))!=0);
+                        all_notify_value=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
+
+
+                        version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
+                        period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
+                        sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
+                        vibrator_type = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VIBRATE));
+                        color = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_COLOR));
+
+                        ringtone_title = RingtoneManager.getRingtone(this,Uri.parse(sound)).getTitle(this);
+
+                        color_name="Green";
+                        switch (color){
+                            case -65536:color_name="Red";break;
+                            case -16711936:color_name="Green";break;
+                            case -256:color_name="Yellow";break;
+                            case -16776961:color_name="Blue";break;
+                        }
+
+
+                        switch(vibrator_type){
+                            case "No":vibrate= new long[] {0};break;
+                            case "Short":vibrate= new long[] {1000,1000};break;
+                            case "Long":vibrate= new long[] {1000,1000,1000,1000};break;
+                        }
+
+
+                        cursor_pref.close();
+                        Log.d(LOG_TAG, "T notify: " + t_notify_value);
+                        //Log.d(LOG_TAG, "Version: : " + version);
+
+                        Log.d(LOG_TAG, "t from external DB = " + t);
+                        Log.d(LOG_TAG, "t from local DB = " + t_max_value);
+                    }
+
+
+                    Cursor cursor_main = getContentResolver().query(Uri.parse(MyContentProvider.MAIN_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
+                    if(cursor_main!=null){
+                        cursor_main.moveToFirst();
+                        l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
+                        t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
+                        h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
+                        pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
+                        pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
+                        p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
+                        p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
+                        relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
+                        relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
+                        w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
+                        date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
+                        Log.d(LOG_TAG, "Date from external DB = " + date);
+                        Log.d(LOG_TAG, "Date from local DB  = " + date_result);
+                        cursor_main.close();
+                    }
+
+
+                    
+
+                    if (!all_notify_value && !date.equals(date_result) && !date_result.isEmpty() && !ctrl_id.equals("")) {
+                        if ((t > t_max_value || t < t_min_value) && t_notify_value && t_control==1)
                             sendNotif(ctrl_id, "Температура воздуха " + t + "!");
-                        if ((h > saved_h_max || h < saved_h_min) && saved_h_notify && h_control==1)
+                        if ((h > h_max_value || h < h_min_value) && h_notify_value && h_control==1)
                             sendNotif(ctrl_id, "Влажность воздуха " + h + "!");
-                        if ((pot1_h > saved_pot1_h_max || pot1_h < saved_pot1_h_min) && saved_pot1_notify && pot1_control==1)
+                        if ((pot1_h > pot1_h_max_value || pot1_h < pot1_h_min_value) && pot1_notify_value && pot1_control==1)
                             sendNotif(ctrl_id, "Влажность 1 горшка " + pot1_h + "!");
-                        if ((pot2_h > saved_pot2_h_max || pot2_h < saved_pot2_h_min) && saved_pot2_notify && pot2_control==1)
+                        if ((pot2_h > pot2_h_max_value || pot2_h < pot2_h_min_value) && pot2_notify_value && pot2_control==1)
                             sendNotif(ctrl_id, "Влажность 2 горшка " + pot2_h + "!");
-                        if ((water_level > saved_wl_max || water_level < saved_wl_min) && saved_wl_notify && water_control==1)
+                        if ((water_level > wl_max_value || water_level < wl_min_value) && wl_notify_value && water_control==1)
                             sendNotif(ctrl_id, "Уровень дыма " + water_level + "!");
 
-                        if (l_result != light_state && saved_l_notify && l_control==1) {
+                        if (l_result != light_state && l_notify_value && l_control==1) {
                             if (light_state == 1) sendNotif(ctrl_id, "Свет включился!");
                             if (light_state == 0) sendNotif(ctrl_id, "Свет выключился!");
                         }
-                        if (relay1_result != relay1_state && saved_relays_notify  && relay1_control==1) {
-                            if (relay1_state == 1) sendNotif(ctrl_id, "Реле 1 включился!");
-                            if (relay1_state == 0) sendNotif(ctrl_id, "Реле 1 выключился!");
+                        if (relay1_result != relay1_state && relays_notify_value  && relay1_control==1) {
+                            if (relay1_state == 0) sendNotif(ctrl_id, "Реле 1 включился!");
+                            if (relay1_state == 1) sendNotif(ctrl_id, "Реле 1 выключился!");
                         }
-                        if (relay2_result != relay2_state && saved_relays_notify  && relay2_control==1) {
-                            if (relay2_state == 1) sendNotif(ctrl_id, "Реле 2 включился!");
-                            if (relay2_state == 0) sendNotif(ctrl_id, "Реле 2 выключился!");
+                        if (relay2_result != relay2_state && relays_notify_value  && relay2_control==1) {
+                            if (relay2_state == 0) sendNotif(ctrl_id, "Реле 2 включился!");
+                            if (relay2_state == 1) sendNotif(ctrl_id, "Реле 2 выключился!");
                         }
-                        if (p1_result != pump1_state && saved_pumps_notify && pump1_control==1) {
+                        if (p1_result != pump1_state && pumps_notify_value && pump1_control==1) {
                             if (pump1_state == 1) sendNotif(ctrl_id, "Насос 1 включился!");
                             if (pump1_state == 0) sendNotif(ctrl_id, "Насос 1 выключился!");
                         }
-                        if (p2_result != pump2_state && saved_pumps_notify && pump2_control==1) {
+                        if (p2_result != pump2_state && pumps_notify_value && pump2_control==1) {
                             if (pump2_state == 1) sendNotif(ctrl_id, "Насос 2 включился!");
                             if (pump2_state == 0) sendNotif(ctrl_id, "Насос 2 выключился!");
                         }
 
                     }
 
-                    SystemState systemState = new SystemState(ctrl_id,light_state,t,h,
-                            pot1_h,pot2_h,relay1_state,relay2_state,pump1_state,pump2_state,
-                            water_level, date);
-                    db.updateSystemState(systemState);
 
-                    // Don't forget to close database connection
-                    db.closeDB();
+                    ContentValues cv = new ContentValues();
+                    cv.put(MyContentProvider.KEY_MAIN_CTRL_ID,ctrl_id);
+                    cv.put(MyContentProvider.KEY_MAIN_LIGHT_STATE,light_state);
+                    cv.put(MyContentProvider.KEY_MAIN_T,t);
+                    cv.put(MyContentProvider.KEY_MAIN_H,h);
+                    cv.put(MyContentProvider.KEY_MAIN_POT1_H,pot1_h);
+                    cv.put(MyContentProvider.KEY_MAIN_POT2_H,pot2_h);
+                    cv.put(MyContentProvider.KEY_MAIN_RELAY1_STATE,relay1_state);
+                    cv.put(MyContentProvider.KEY_MAIN_RELAY2_STATE,relay2_state);
+                    cv.put(MyContentProvider.KEY_MAIN_PUMP1_STATE,pump1_state);
+                    cv.put(MyContentProvider.KEY_MAIN_PUMP2_STATE,pump2_state);
+                    cv.put(MyContentProvider.KEY_MAIN_WATER_LEVEL,water_level);
+                    cv.put(MyContentProvider.KEY_MAIN_DATE,date);
+
+                    Uri uri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(ctrl_id));
+                    int cnt = getContentResolver().update(uri, cv, null, null);
+                    Log.d(LOG_TAG, "Number of device updated: " + cnt);
+
+
 
 
 
@@ -383,9 +497,11 @@ public class BackgroundService extends Service implements
             }
         } else {
             Log.d(LOG_TAG, "Server does not answer");
-        }
+        }*/
 
     }
+
+
 
 }
 // ---------------------------------------------------------------------------------------------

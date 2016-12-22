@@ -9,8 +9,6 @@
     <uses-permission android:name="android.permission.READ_LOGS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
-
-
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
@@ -56,6 +54,35 @@
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
         </activity>
+
+
+        <activity
+            android:name=".activities.PrefCommonActivity"
+            android:label="@string/app_name"
+            android:noHistory="false"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+        <activity
+        android:name=".activities.PrefCriticalActivity"
+        android:label="@string/app_name"
+        android:noHistory="false"
+        android:screenOrientation="portrait">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+        </intent-filter>
+    </activity>
+        <activity
+            android:name=".activities.PrefAWActivity"
+            android:label="@string/app_name"
+            android:noHistory="false"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
         <activity
             android:name=".activities.InfoActivity"
             android:label="@string/app_name"
@@ -76,6 +103,8 @@
             </intent-filter>
         </activity>
 
+
+
         <receiver android:name=".receivers.BootAndUpdateReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
@@ -91,7 +120,11 @@
             android:exported="false"
 
         />
-
+        <provider
+            android:authorities="cc.growapp.growapp.providers.database"
+            android:name=".database.MyContentProvider"
+            android:exported="false">
+        </provider>
     </application>
 
 </manifest>

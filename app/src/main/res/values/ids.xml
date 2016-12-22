@@ -28,6 +28,7 @@
 
     <item name="pref_tv_auto_watering1" type="id"/>
     <item name="pref_tv_auto_watering2" type="id"/>
+    <item name="pref_tv_pump_time" type="id"/>
 
 
 </resources>

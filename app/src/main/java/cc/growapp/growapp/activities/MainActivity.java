@@ -1,17 +1,20 @@
 package cc.growapp.growapp.activities;
 
-import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
-import android.app.PendingIntent;
 import android.app.ProgressDialog;
-import android.content.Context;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 
+import android.database.ContentObserver;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
@@ -29,16 +32,15 @@ import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import java.util.LinkedList;
 import java.util.List;
 
 import cc.growapp.growapp.DataBroker;
-import cc.growapp.growapp.database.Controllers;
-import cc.growapp.growapp.database.DatabaseHelper;
-import cc.growapp.growapp.database.Dev_profile;
-import cc.growapp.growapp.database.SystemState;
+import cc.growapp.growapp.GrowappConstants;
+import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.fragments.Frag_hum;
 import cc.growapp.growapp.fragments.Frag_light_off;
 import cc.growapp.growapp.fragments.Frag_light_on;
@@ -50,8 +52,8 @@ import cc.growapp.growapp.fragments.Frag_wcan1_on;
 import cc.growapp.growapp.fragments.Frag_wcan2_off;
 import cc.growapp.growapp.fragments.Frag_wcan2_on;
 import cc.growapp.growapp.JSONHandler;
-import cc.growapp.growapp.MyAlarmReceiver;
 import cc.growapp.growapp.R;
+import cc.growapp.growapp.services.BackgroundService;
 
 
 public class MainActivity extends AppCompatActivity implements
@@ -85,8 +87,17 @@ public class MainActivity extends AppCompatActivity implements
     int auto_watering1;
     int auto_watering2;
 
-    // Database Helper
-    DatabaseHelper db;
+    int l_result=0;
+    int t_result=0;
+    int h_result=0;
+    int pot1_h_result=0;
+    int pot2_h_result=0;
+    int p1_result=0;
+    int p2_result=0;
+    int relay1_result=0;
+    int relay2_result=0;
+    int w_result=0;
+    String date_result="";
 
     FrameLayout wcan1;
     FrameLayout wcan2;
@@ -97,8 +108,8 @@ public class MainActivity extends AppCompatActivity implements
     String hash;
 
 
-    private String controller_id;
-    private String [] ctrl_spinner_data;
+    private String controller_id,controller_name;
+    private String [] ctrl_names_data;
     private String [] ctrl_ids_data;
     private List<String> ctrl_ids_list =new LinkedList<>();
     private List<String> ctrl_names_list =new LinkedList<>();
@@ -113,10 +124,9 @@ public class MainActivity extends AppCompatActivity implements
 
     long last_refresh_time;
 
-    // Progress Dialog
-    //private ProgressDialog pDialog;
-
     FragmentTransaction fTrans;
+
+    static boolean active = false;
 
 
 
@@ -124,8 +134,11 @@ public class MainActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //scheduleAlarm();
-        //cancelAlarm();
+        MainObserver MainObserver = new MainObserver(new Handler());
+        getContentResolver().registerContentObserver(MyContentProvider.MAIN_CONTENT_URI, true, MainObserver);
+
+
+
 
         setContentView(R.layout.activity_main);
         RelativeLayout rl = (RelativeLayout) findViewById(R.id.main_activity_layout);
@@ -138,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements
 
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.END|Gravity.RIGHT);
+                FrameLayout.LayoutParams.WRAP_CONTENT,Gravity.END);
         tv_wcan2_type.setLayoutParams(params);
 
 
@@ -160,7 +173,6 @@ public class MainActivity extends AppCompatActivity implements
         sPref = getSharedPreferences(APP_PREFERENCES, MODE_PRIVATE);
         hash = sPref.getString("hash", "");
 
-        db = new DatabaseHelper(getApplicationContext());
         pDialog = new ProgressDialog(MainActivity.this);
 
 
@@ -175,12 +187,13 @@ public class MainActivity extends AppCompatActivity implements
                 if (controller_id!=null && !controller_id.isEmpty() && !prog_toggle) {
                     Log.d(LOG_TAG, "Manual SW 1 State Change");
                     if (isChecked) {
+                        //Log.d(LOG_TAG, "Checked");
                         launch_set_action("11");
-                        //new ActionHandler(getApplicationContext(), statusField, reciviedField).execute(user_hash, controller_id, "11"); //Сигнал Arduino на реле 1 включить
+
                         // The toggle is enabled
                     } else {
                         launch_set_action("10");
-                        //new ActionHandler(getApplicationContext(), statusField, reciviedField).execute(user_hash, controller_id, "10"); //Сигнал Arduino на реле 2 выключить
+
                         // The toggle is disabled
                     }
                     //call_to_refresh();
@@ -214,10 +227,15 @@ public class MainActivity extends AppCompatActivity implements
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 controller_id = ctrl_ids_data[spinner.getSelectedItemPosition()];
+                controller_name = ctrl_names_data[spinner.getSelectedItemPosition()];
                 //spinner.getSelectedItem().toString();
                 Log.d(LOG_TAG, "Selected controller: " + controller_id);
 
-                if (controller_id!=null && !controller_id.isEmpty()) populateFragments(controller_id);
+                if (controller_id!=null && !controller_id.isEmpty()) {
+                    get_main_data(controller_id);
+
+                    populateFragments();
+                }
                 //new GetSystemState().execute();
             }
 
@@ -256,9 +274,9 @@ public class MainActivity extends AppCompatActivity implements
     }
     public void populateSpinner(){
         Spinner spinner = (Spinner) findViewById(R.id.ctrl_spinner);
-        Log.d(LOG_TAG, "Spinner [0]=" + ctrl_spinner_data[0]);
+        Log.d(LOG_TAG, "Spinner [0]=" + ctrl_names_data[0]);
         // адаптер
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ctrl_spinner_data);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ctrl_names_data);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
 
@@ -268,6 +286,7 @@ public class MainActivity extends AppCompatActivity implements
         if (intent.hasExtra("controller_id")) {
             //spinner.setSelection(ctrl_ids_list.indexOf(getIntent().getExtras().getString("controller_id")));
             controller_id = intent.getStringExtra("controller_id");
+            //TODO Maybe needs name of ctrl
             //Если вызвана с уведомления, то запоминаем ИД и удаляем его, чтоб правильно отображались фрагменты
             intent.removeExtra("controller_id");
         }
@@ -285,11 +304,21 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        active=false;
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        active=true;
         GetControllersListFromSQL();
         populateSpinner();
-        if (controller_id != null && !controller_id.isEmpty())populateFragments(controller_id);
+        if (controller_id != null && !controller_id.isEmpty()){
+            get_main_data(controller_id);
+            populateFragments();
+        }
     }
 
     private void launch_set_action(String action) {
@@ -298,20 +327,21 @@ public class MainActivity extends AppCompatActivity implements
 
         //Запишем в локльную БД, состояние измененых реле, насосов, чтоб после обновления экрана
         //изменения отобразились на экране
+/*TODO Content Provider
         SystemState state = db.getSystemState(controller_id);
         switch (action){
-            case "10":state.set_relay1_state(0);break;
-            case "11":state.set_relay1_state(1);break;
-            case "20":state.set_relay2_state(0);break;
-            case "21":state.set_relay2_state(1);break;
+            case "10":state.set_relay1_state(1);break;
+            case "11":state.set_relay1_state(0);break;
+            case "20":state.set_relay2_state(1);break;
+            case "21":state.set_relay2_state(0);break;
             case "30":state.set_pump1_state(0);break;
             case "31":state.set_pump1_state(1);break;
             case "40":state.set_pump2_state(0);break;
             case "41":state.set_pump2_state(1);break;
-        }
+        }*/
 
 
-        new DataBroker.set_action(this).execute(String.valueOf(controller_id), hash, action);
+        new DataBroker.set_action(this).execute(controller_id, hash, action);
     }
 
 
@@ -329,21 +359,35 @@ public class MainActivity extends AppCompatActivity implements
         switch (item.getItemId())
         {
             case R.id.pref:
-                preferences();
+                Log.d(LOG_TAG, "Активити настроек");
+                if(controller_id!=null && !controller_id.isEmpty()){
+
+
+                    Intent pref_intent = new Intent(MainActivity.this,PreferencesActivity.class);
+                    pref_intent.putExtra("controller_id", controller_id);
+                    pref_intent.putExtra("controller_name", controller_name);
+
+                    //intent.putExtra("ver", ctrl_id_string);
+                    startActivity(pref_intent);
+                }
                 return true;
             case R.id.account:
                 Intent account_intent = new Intent(MainActivity.this,AccountActivity.class);
+                account_intent.putExtra("controller_id", controller_id);
+                account_intent.putExtra("controller_name", controller_name);
                 startActivity(account_intent);
                 return true;
             case R.id.info:
                 Intent info_intent = new Intent(MainActivity.this,InfoActivity.class);
+                info_intent.putExtra("controller_id", controller_id);
+                info_intent.putExtra("controller_name", controller_name);
                 startActivity(info_intent);
                 return true;
             case R.id.graphs:
                 if(controller_id!=null && !controller_id.isEmpty()){
-                    String ctrl_id_string=String.valueOf(controller_id);
+                    //String ctrl_id_string=String.valueOf(controller_id);
                     Intent intent = new Intent(MainActivity.this,GraphsActivity.class);
-                    intent.putExtra("controller_id", ctrl_id_string);
+                    intent.putExtra("controller_id", controller_id);
                     startActivity(intent);
                 }
                 //showHelp();
@@ -367,19 +411,8 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
-    public void preferences() {
-        Log.d(LOG_TAG, "Активити настроек");
-        if(controller_id!=null && !controller_id.isEmpty()){
-            String ctrl_id_string=String.valueOf(controller_id);
-            Intent intent = new Intent(MainActivity.this,PreferencesActivity.class);
-            intent.putExtra("controller_id", ctrl_id_string);
-            startActivity(intent);
-        }
 
-
-    }
-
-    public void populateFragments(String ctrl_id){
+    public void populateFragments(){
 
         TextView water_level_label = (TextView) findViewById(R.id.textView14);
         TextView water_level = (TextView) findViewById(R.id.tv_wl_data);
@@ -395,35 +428,8 @@ public class MainActivity extends AppCompatActivity implements
         FrameLayout pot2 = (FrameLayout) findViewById(R.id.frgm_pot2);
 
 
-        //Выцепляем с базы, какие компоненты системы нам доступны
-        //После чего заполняем экран фрагментами, соответсвующие комплектации
-        Dev_profile dev_profile = db.getDevProfile(ctrl_id);
-        //Log.d("Tag Name", dev_profile.getTagName());
-        l_control= dev_profile.get_light_control();
-        t_control= dev_profile.get_t_control();
-        h_control= dev_profile.get_h_control();
-        pot1_control= dev_profile.get_pot1_control();
-        pot2_control= dev_profile.get_pot2_control();
-        pump1_control= dev_profile.get_pump1_control();
-        pump2_control= dev_profile.get_pump2_control();
-        relay1_control= dev_profile.get_relay1_control();
-        relay2_control= dev_profile.get_relay2_control();
-        water_control= dev_profile.get_water_control();
-        auto_watering1= dev_profile.get_auto_watering1();
-        auto_watering2= dev_profile.get_auto_watering2();
 
-        SystemState state = db.getSystemState(ctrl_id);
-        int l_result= state.get_light_state();
-        int t_result= state.get_t();
-        int h_result= state.get_h();
-        int pot1_h_result= state.get_pot1_h();
-        int pot2_h_result= state.get_pot2_h();
-        int p1_result= state.get_pump1_state();
-        int p2_result= state.get_pump2_state();
-        int relay1_result= state.get_relay1_state();
-        int relay2_result= state.get_relay2_state();
-        int w_result= state.get_water_level();
-        String date_result= state.get_date();
+
 
         light.setVisibility(View.VISIBLE);
         t.setVisibility(View.VISIBLE);
@@ -580,6 +586,7 @@ public class MainActivity extends AppCompatActivity implements
             f_hum = (Frag_hum) getFragmentManager().findFragmentByTag(frag_hum_tag);
             f_pot1 = (Frag_pot1) getFragmentManager().findFragmentByTag(frag_pot1_tag);
             f_pot2 = (Frag_pot2) getFragmentManager().findFragmentByTag(frag_pot2_tag);
+
             //Если да, заполним их данными
             if(f_temp!=null)f_temp.setText(t_result+"'C");
             if(f_hum!=null)f_hum.setText(h_result+"%");
@@ -602,10 +609,10 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(LOG_TAG, "Состояние реле 1 = " + relay1_result);
         Log.d(LOG_TAG, "Состояние реле 2 = " + relay2_result);
         if(relay1_control==1){
-            if(relay1_result==1)relay1.setChecked(true);else relay1.setChecked(false);
+            if(relay1_result==0)relay1.setChecked(true);else relay1.setChecked(false);
         } else relay1.setVisibility(View.INVISIBLE);
         if(relay2_control==1){
-            if(relay2_result==1)relay2.setChecked(true);else relay2.setChecked(false);
+            if(relay2_result==0)relay2.setChecked(true);else relay2.setChecked(false);
         } else relay2.setVisibility(View.INVISIBLE);
 
         prog_toggle=false;
@@ -615,7 +622,6 @@ public class MainActivity extends AppCompatActivity implements
         date.setText(date_result);
         Log.d(LOG_TAG, "Дата получена = " + date_result);
 
-        db.closeDB();
     }
 
 
@@ -638,7 +644,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d(LOG_TAG, String.valueOf(Math.abs(y2 - y1)));
                 if(Math.abs(y2 - y1)>=400) {
                     //Если прошло больше 10 секунд, с последнего изменения интерфейса, то разрешим обновится (см. call_to_refresh)
-                    if(System.currentTimeMillis()-last_refresh_time>5000){
+                    if(System.currentTimeMillis()-last_refresh_time> GrowappConstants.get_data_timeout){
 
                         pDialog.show();
                         pDialog.setMessage(getString(R.string.loadingsystemstate));
@@ -647,6 +653,7 @@ public class MainActivity extends AppCompatActivity implements
                         //new GetSystemState().execute();
                         last_refresh_time=System.currentTimeMillis();
                         call_to_refresh();
+
                     }
                 }
 
@@ -661,21 +668,41 @@ public class MainActivity extends AppCompatActivity implements
         ctrl_names_list.clear();
         ctrl_ids_list.clear();
 
-        List<Controllers> allCtrls = db.getAllCtrls();
-        for (Controllers ctrl : allCtrls) {
+        Cursor cursor = getContentResolver().query(MyContentProvider.CTRLS_CONTENT_URI, null, null, null, null);
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()){
+                do{
+
+                    Log.d(LOG_TAG, "ID контроллера: " + cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_ID)));
+                    Log.d(LOG_TAG, "Name контроллера: " + cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_NAME)));
+
+                    ctrl_ids_list.add(cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_ID)));
+                    ctrl_names_list.add(cursor.getString(cursor.getColumnIndexOrThrow(MyContentProvider.KEY_CTRL_NAME)));
+
+                    // do what ever you want here
+                }while(cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+
+
+        //List<Controllers> allCtrls = db.getAllCtrls();
+        /*for (Controllers ctrl : mCursor) {
             //Log.d(LOG_TAG, "CTRLS Name = "+ctrl.get_name());
             Log.d(LOG_TAG, "ID контроллера: " + String.valueOf(ctrl.get_ctrl_id()));
             Log.d(LOG_TAG, "Name контроллера: " + ctrl.get_name());
 
             ctrl_ids_list.add(String.valueOf(ctrl.get_ctrl_id()));
             ctrl_names_list.add(ctrl.get_name());
-        }
+        }*/
 
         //Преобразуем в массив
         ctrl_ids_data = ctrl_ids_list.toArray(new String[ctrl_ids_list.size()]);
-        ctrl_spinner_data = ctrl_names_list.toArray(new String[ctrl_names_list.size()]);
+        ctrl_names_data = ctrl_names_list.toArray(new String[ctrl_names_list.size()]);
 
-        db.closeDB();
+
 
         return true;
     }
@@ -723,41 +750,17 @@ public class MainActivity extends AppCompatActivity implements
 
     private void call_to_refresh(){
         launch_set_action("3");
+        Intent intent = new Intent(this, BackgroundService.class);
+        intent.putExtra("controller_id",controller_id);
+        intent.putExtra("emergency_call",true);
+        startService(intent);
         //new ActionHandler(getApplicationContext(),statusField, reciviedField).execute(user_hash,controller_id, "3"); //Сигнал Arduino на сбор данных
         last_refresh_time=System.currentTimeMillis();
     }
 
 
 
-    @Override
-    public void onSetActionCompleteMethod(String s) {
-        if (s != null) {
-            Log.d(LOG_TAG, "Callback, action: " + s);
-            answerField.setText(s);
 
-        } else {
-            //Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    public void onGetSystemStateCompleteMethod(String s) {
-        Log.d(LOG_TAG, "Callback, system state: " + s);
-        if(s!=null){
-            SystemState result= new JSONHandler().ParseJSONSystemState(s);
-            if(result!=null){
-                pDialog.setMessage("Получение данных датчиков: успех");
-                db.updateSystemState(result);
-                populateFragments(controller_id);
-            } else {
-                pDialog.dismiss();
-                //Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            // Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
-        }
-        pDialog.dismiss();
-    }
 
     private void add_wcan1_fragment(boolean state){
         // ---------------------- Работаем с фрагментами "Лейка" ---------------------------
@@ -925,16 +928,17 @@ public class MainActivity extends AppCompatActivity implements
                 //Изменим название в списке, котрым наполняем спиннер
                 int index=ctrl_ids_list.indexOf(String.valueOf(controller_id));
                 ctrl_names_list.set(index, new_name);
-                ctrl_spinner_data[index]=new_name;
+                ctrl_names_data[index]=new_name;
 
                 //Изменим название в БД
-                Controllers controllers = new Controllers(controller_id,new_name);
-                db.updateControllerName(controllers);
-                db.closeDB();
+                ContentValues cv = new ContentValues();
+                cv.put(MyContentProvider.KEY_CTRL_NAME,new_name);
+                Uri newUri = ContentUris.withAppendedId(MyContentProvider.CTRLS_CONTENT_URI, Long.parseLong(controller_id));
+                int cnt = getContentResolver().update(newUri, cv, null, null);
+                Log.d(LOG_TAG, "Update URI to dispatch: " + (newUri.toString()));
+
 
                 new DataBroker.set_ctrl_name().execute(String.valueOf(controller_id), hash, new_name);
-
-                //GetControllersListFromSQL();
 
                 //Наполним спиннер, измененными данными
                 populateSpinner();
@@ -950,7 +954,113 @@ public class MainActivity extends AppCompatActivity implements
         b.show();
     }
 
+    ContentValues get_main_data(String ctrl_id){
+        Cursor cursor_dev_profile = getContentResolver().query(Uri.parse(MyContentProvider.DEV_PROFILE_CONTENT_URI+"/"+ctrl_id), null, null, null, null);
+        if(cursor_dev_profile!=null){
+            cursor_dev_profile.moveToFirst();
+            l_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
+            t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
+            h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
+            pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
+            pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
+            pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
+            pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
+            relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
+            relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
+            water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
+            auto_watering1= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING1));
+            auto_watering2= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING2));
+            cursor_dev_profile.close();
+        }
 
+        Cursor cursor_main = getContentResolver().query(Uri.parse(MyContentProvider.MAIN_CONTENT_URI+"/"+ctrl_id),null, null, null, null);
+        if(cursor_main!=null){
+            cursor_main.moveToFirst();
+            l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
+            t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
+            h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
+            pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
+            pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
+            p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
+            p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
+            relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
+            relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
+            w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
+            date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
+            cursor_main.close();
+        }
+
+        ContentValues old_main_data = new ContentValues();
+        old_main_data.put("l_result",l_result);
+        old_main_data.put("t_result",t_result);
+        old_main_data.put("h_result",h_result);
+        old_main_data.put("pot1_h_result",pot1_h_result);
+        old_main_data.put("pot2_h_result",pot2_h_result);
+        old_main_data.put("p1_result",p1_result);
+        old_main_data.put("p2_result",p2_result);
+        old_main_data.put("relay1_result",relay1_result);
+        old_main_data.put("relay2_result", relay2_result);
+        old_main_data.put("w_result",w_result);
+        old_main_data.put("date_result", date_result);
+        return old_main_data;
+    }
+
+
+    public class MainObserver extends ContentObserver {
+        public MainObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            this.onChange(selfChange,null);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            get_main_data(controller_id);
+            if(active)populateFragments();
+        }
+
+    }
+    @Override
+    public void onSetActionCompleteMethod(String s) {
+        if (s != null) {
+            Log.d(LOG_TAG, "Callback, action: " + s);
+            answerField.setText(s);
+
+        }
+    }
+
+    @Override
+
+    public void onGetSystemStateCompleteMethod(String s) {
+        Log.d(LOG_TAG, "Callback, system state: " + s);
+        if(s!=null){
+            ContentValues result= new JSONHandler().ParseJSONSystemState(s);
+            if(result!=null){
+                Toast.makeText(this,R.string.get_data, Toast.LENGTH_SHORT).show();
+                get_main_data(controller_id);
+
+                //pDialog.setMessage("Получение данных датчиков: успех");
+                //Uri newUri = getContentResolver().update(MyContentProvider.MAIN_CONTENT_URI, result);
+                //Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
+                Uri uri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(controller_id));
+                int cnt = getContentResolver().update(uri, result, null, null);
+                Log.d(LOG_TAG, "Number of device updated: " + cnt);
+
+                //get_main_data(controller_id);
+                //populateFragments(controller_id);
+            } else {
+                pDialog.dismiss();
+                //Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            // Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
+        }
+        pDialog.dismiss();
+    }
 
 
 }

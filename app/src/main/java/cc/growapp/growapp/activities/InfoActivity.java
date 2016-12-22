@@ -5,7 +5,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.database.ContentObserver;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
@@ -14,7 +18,9 @@ import android.widget.TextView;
 
 import java.util.Date;
 
+import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.R;
+import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.services.BackgroundService;
 
 
@@ -22,51 +28,69 @@ public class InfoActivity extends AppCompatActivity  {
 
 
     private static final String LOG_TAG = "InfoActivity";
-    SharedPreferences sPref;
-    public static final String APP_PREFERENCES = "GrowAppSettings";
+
+    String controller_id,controller_name;
 
 
-    // Database Helper
-    //DatabaseHelper db;
-    BroadcastReceiver receiver;
+    TextView tv_serviceStartAt,tv_serviceperiod;
+    @Override
+    protected void onPause() {
+        super.onPause();
 
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_info);
 
+        InfoObserver InfoObserver = new InfoObserver(new Handler());
+        getContentResolver().registerContentObserver(MyContentProvider.LOCAL_CONTENT_URI, true,InfoObserver);
 
-        if(getSupportActionBar()!=null){
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(getString(R.string.info));
+        controller_id = getIntent().getStringExtra("controller_id");
+        controller_name = getIntent().getStringExtra("controller_name");
+
+
+
+
+        tv_serviceStartAt = (TextView) findViewById(R.id.info_tv_serviceStartTime);
+        tv_serviceperiod = (TextView) findViewById(R.id.info_tv_period);
+
+
+        Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI + "/" + controller_id), null, null, null, null);
+        if(cursor_pref!=null) {
+            cursor_pref.moveToFirst();
+            String period = String.valueOf(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD)));
+
+            cursor_pref.close();
+
+            switch (period){
+                case "60":tv_serviceperiod.setText(getString(R.string.min1));break;
+                case "900":tv_serviceperiod.setText(getString(R.string.min15));break;
+                case "3600":tv_serviceperiod.setText(getString(R.string.hour));break;
+                case "7200":tv_serviceperiod.setText(getString(R.string.hour2));break;
+            }
         }
 
-        final TextView tv_serviceStartAt = (TextView) findViewById(R.id.info_tv_serviceStartTime);
-        final TextView tv_serviceLastStartAt = (TextView) findViewById(R.id.info_tv_lastStartTime);
-        TextView tv_serviceperiod = (TextView) findViewById(R.id.info_tv_period);
 
-        sPref = getSharedPreferences(APP_PREFERENCES,MODE_PRIVATE);
-        Long ServiceStartAt = sPref.getLong("ServiceStartAt", 0);
-        Long ServiceLastStartAt = sPref.getLong("ServiceLastStartAt", 0);
-        int ServicePeriod = sPref.getInt("ServicePeriod", 900);
-        Log.d(LOG_TAG,"Service starts at: " + ServiceStartAt);
-        Log.d(LOG_TAG,"Service last start at: " + ServiceStartAt);
-        switch (ServicePeriod){
-            case 60:tv_serviceperiod.setText(getString(R.string.min1));break;
-            case 900:tv_serviceperiod.setText(getString(R.string.min15));break;
-            case 3600:tv_serviceperiod.setText(getString(R.string.hour));break;
-            case 7200:tv_serviceperiod.setText(getString(R.string.hour2));break;
-        }
+
+
+
+
 
         //if(!ServiceStartAt.isEmpty())
-        tv_serviceStartAt.setText(new Date(ServiceStartAt).toString());
-        tv_serviceLastStartAt.setText(new Date(ServiceLastStartAt).toString());
 
-        receiver = new BroadcastReceiver() {
+
+        DataPut();
+        //tv_serviceLastStartAt.setText(new Date(ServiceLastStartAt).toString());
+
+        /*receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Long start_time = intent.getLongExtra(BackgroundService.START_TIME,0);
@@ -76,6 +100,12 @@ public class InfoActivity extends AppCompatActivity  {
                 tv_serviceLastStartAt.setText(new Date(last_start).toString());
             }
         };
+*/
+
+        if(getSupportActionBar()!=null){
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(getIntent().getStringExtra("controller_name")+" "+getString(R.string.info));
+        }
 
 
     }
@@ -93,14 +123,14 @@ public class InfoActivity extends AppCompatActivity  {
     @Override
     protected void onStart() {
         super.onStart();
-        registerReceiver((receiver),
+        /*registerReceiver((receiver),
                 new IntentFilter(BackgroundService.ACTION)
-        );
+        );*/
     }
 
     @Override
     protected void onStop() {
-        unregisterReceiver(receiver);
+        //unregisterReceiver(receiver);
         super.onStop();
     }
 
@@ -117,5 +147,36 @@ public class InfoActivity extends AppCompatActivity  {
         }
     }
 
+    public class InfoObserver extends ContentObserver {
+        public InfoObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            this.onChange(selfChange,null);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            //Write your code here
+            //Whatever is written here will be
+            //executed whenever a change is made
+            DataPut();
+
+
+        }
+
+    }
+    void DataPut(){
+        long ServiceStartAt=0;
+        Cursor cursor_local = getContentResolver().query(Uri.parse(MyContentProvider.LOCAL_CONTENT_URI + "/" + controller_id), null, null, null, null);
+        if(cursor_local!=null) {
+            if(cursor_local.moveToFirst())
+                ServiceStartAt = Long.parseLong(cursor_local.getString(cursor_local.getColumnIndexOrThrow(MyContentProvider.KEY_LOCAL_START_TIME)));
+            cursor_local.close();
+        }
+        tv_serviceStartAt.setText(new Date(ServiceStartAt).toString());
+    }
 
 }

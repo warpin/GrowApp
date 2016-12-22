@@ -63,6 +63,9 @@
     <string name="short_vibration">Короткий</string>
     <string name="long_vibration">Длинный</string>
     <string name="default_string">По умолчанию</string>
+    <string name="themes">Выбор темы</string>
+    <string name="pump_time">Длительность полива</string>
+    <string name="get_data">Запрос данных</string>
 
 
 </resources>
