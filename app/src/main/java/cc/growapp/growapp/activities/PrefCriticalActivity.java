@@ -61,7 +61,7 @@ public class PrefCriticalActivity extends AppCompatActivity {
     int relay2_control;
     int water_control;
 
-
+    boolean is_modified=false;
     
     
     EditText parameter_min_value, parameter_max_value;
@@ -168,7 +168,8 @@ public class PrefCriticalActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        version++;
+
+        
         String t_max_value = "0";
         String t_min_value = "0";
         String h_max_value = "0";
@@ -197,6 +198,15 @@ public class PrefCriticalActivity extends AppCompatActivity {
             t_max_value = temp_max_view.getText().toString();
             t_min_value = temp_min_view.getText().toString();
             t_notify_value = String.valueOf(temp_notify.isChecked() ? 1 : 0);
+            if(!t_max_value.equals(t_max_saved))is_modified = true;
+            if(!t_min_value.equals(t_min_saved))is_modified = true;
+            if(!t_notify_value.equals(String.valueOf(t_notify_saved  ? 1 : 0)))is_modified = true;
+
+            Log.d(LOG_TAG,"t_max_saved = "+ t_max_saved);
+            Log.d(LOG_TAG,"t_max_value = "+ t_max_value);
+
+            Log.d(LOG_TAG,"t_notify_saved = "+ String.valueOf(t_notify_saved ? 1 : 0));
+            Log.d(LOG_TAG,"t_notify = "+ t_notify_value);
         }
 
 
@@ -208,6 +218,9 @@ public class PrefCriticalActivity extends AppCompatActivity {
             h_max_value = hum_max_view.getText().toString();
             h_min_value = hum_min_view.getText().toString();
             h_notify_value = String.valueOf(hum_notify.isChecked() ? 1 : 0);
+            if(!h_max_value.equals(h_max_saved))is_modified = true;
+            if(!h_min_value.equals(h_min_saved))is_modified = true;
+            if(!h_notify_value.equals(String.valueOf(h_notify_saved ? 1 : 0) ))is_modified = true;
         }
         if(pot1_control!=0){
             EditText pot1_h_max_view = (EditText) findViewById(R.id.pref_et_pot1_h_max);
@@ -217,6 +230,10 @@ public class PrefCriticalActivity extends AppCompatActivity {
             pot1_h_max_value = pot1_h_max_view.getText().toString();
             pot1_h_min_value = pot1_h_min_view.getText().toString();
             pot1_notify_value = String.valueOf(pot1_h_notify.isChecked() ? 1 : 0);
+
+            if(!pot1_h_max_value.equals(pot1_h_max_saved))is_modified = true;
+            if(!pot1_h_min_value.equals(pot1_h_min_saved))is_modified = true;
+            if(!pot1_notify_value.equals(String.valueOf(pot1_notify_saved ? 1 : 0)))is_modified = true;
         }
         if(pot2_control!=0){
             EditText pot2_h_max_view = (EditText) findViewById(R.id.pref_et_pot2_h_max);
@@ -226,6 +243,10 @@ public class PrefCriticalActivity extends AppCompatActivity {
             pot2_h_max_value = pot2_h_max_view.getText().toString();
             pot2_h_min_value = pot2_h_min_view.getText().toString();
             pot2_notify_value = String.valueOf(pot2_h_notify.isChecked() ? 1 : 0);
+
+            if(!pot2_h_max_value.equals(pot2_h_max_saved))is_modified = true;
+            if(!pot2_h_min_value.equals(pot2_h_min_saved))is_modified = true;
+            if(!pot2_notify_value.equals(String.valueOf(pot2_notify_saved ? 1 : 0)))is_modified = true;
         }
         if(water_control!=0){
             EditText wl_max_view = (EditText) findViewById(R.id.pref_et_wl_max);
@@ -235,51 +256,63 @@ public class PrefCriticalActivity extends AppCompatActivity {
             wl_max_value = wl_max_view.getText().toString();
             wl_min_value = wl_min_view.getText().toString();
             wl_notify_value = String.valueOf(wl_notify.isChecked() ? 1 : 0);
+
+            if(!wl_max_value.equals(wl_max_saved))is_modified = true;
+            if(!wl_min_value.equals(wl_min_saved))is_modified = true;
+            if(!wl_notify_value.equals(String.valueOf(wl_notify_saved ? 1 : 0)))is_modified = true;
         }
         if(pump1_control!=0 || pump2_control!=0){
             CheckBox pumps_notify = (CheckBox) findViewById(R.id.pref_cb_pumps_notify);
             pumps_notify_value = String.valueOf(pumps_notify.isChecked() ? 1 : 0);
+            if(!pumps_notify_value.equals(String.valueOf(pumps_notify_saved ? 1 : 0)))is_modified = true;
         }
         if(relay1_control!=0 || relay2_control!=0){
             CheckBox relays_notify = (CheckBox) findViewById(R.id.pref_cb_relays_notify);
             relays_notify_value = String.valueOf(relays_notify.isChecked()? 1 : 0);
+            if(!relays_notify_value.equals(String.valueOf(relays_notify_saved ? 1 : 0)))is_modified = true;
         }
         if(l_control!=0){
             CheckBox light_notify = (CheckBox) findViewById(R.id.pref_cb_light_notify);
              l_notify_value = String.valueOf(light_notify.isChecked()? 1 : 0);
+             if(!l_notify_value.equals(String.valueOf(l_notify_saved ? 1 : 0)))is_modified = true;
         }
+
         
+        
+        if(is_modified){
+            version++;
+            Log.d(LOG_TAG, "Saving notif preferences in internal DB, version: " + version);
+            ContentValues cv = new ContentValues();
+            cv.put(MyContentProvider.KEY_PREF_CTRL_ID, controller_id);
+            cv.put(MyContentProvider.KEY_PREF_VERSION, version);
 
-        Log.d(LOG_TAG, "Saving notif preferences in internal DB, version: " + version);
-        ContentValues cv = new ContentValues();
-        cv.put(MyContentProvider.KEY_PREF_CTRL_ID, controller_id);
-        cv.put(MyContentProvider.KEY_PREF_VERSION, version);
+            cv.put(MyContentProvider.KEY_PREF_L_NOTIFY, l_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_T_MIN, t_min_value);
+            cv.put(MyContentProvider.KEY_PREF_T_MAX, t_max_value);
+            cv.put(MyContentProvider.KEY_PREF_T_NOTIFY, t_notify_value);
 
-        cv.put(MyContentProvider.KEY_PREF_L_NOTIFY, l_notify_value);
-        cv.put(MyContentProvider.KEY_PREF_T_MIN, t_min_value);
-        cv.put(MyContentProvider.KEY_PREF_T_MAX, t_max_value);
-        cv.put(MyContentProvider.KEY_PREF_T_NOTIFY, t_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_H_MIN, h_min_value);
+            cv.put(MyContentProvider.KEY_PREF_H_MAX, h_max_value);
+            cv.put(MyContentProvider.KEY_PREF_H_NOTIFY, h_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_POT1_H_MIN, pot1_h_min_value);
+            cv.put(MyContentProvider.KEY_PREF_POT1_H_MAX, pot1_h_max_value);
+            cv.put(MyContentProvider.KEY_PREF_POT1_NOTIFY, pot1_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_POT2_H_MIN, pot2_h_min_value);
+            cv.put(MyContentProvider.KEY_PREF_POT2_H_MAX, pot2_h_max_value);
+            cv.put(MyContentProvider.KEY_PREF_POT2_NOTIFY, pot2_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_WL_MIN, wl_min_value);
+            cv.put(MyContentProvider.KEY_PREF_WL_MAX, wl_max_value);
+            cv.put(MyContentProvider.KEY_PREF_WL_NOTIFY, wl_notify_value);
 
-        cv.put(MyContentProvider.KEY_PREF_H_MIN, h_min_value);
-        cv.put(MyContentProvider.KEY_PREF_H_MAX, h_max_value);
-        cv.put(MyContentProvider.KEY_PREF_H_NOTIFY, h_notify_value);
-        cv.put(MyContentProvider.KEY_PREF_POT1_H_MIN, pot1_h_min_value);
-        cv.put(MyContentProvider.KEY_PREF_POT1_H_MAX, pot1_h_max_value);
-        cv.put(MyContentProvider.KEY_PREF_POT1_NOTIFY, pot1_notify_value);
-        cv.put(MyContentProvider.KEY_PREF_POT2_H_MIN, pot2_h_min_value);
-        cv.put(MyContentProvider.KEY_PREF_POT2_H_MAX, pot2_h_max_value);
-        cv.put(MyContentProvider.KEY_PREF_POT2_NOTIFY, pot2_notify_value);
-        cv.put(MyContentProvider.KEY_PREF_WL_MIN, wl_min_value);
-        cv.put(MyContentProvider.KEY_PREF_WL_MAX, wl_max_value);
-        cv.put(MyContentProvider.KEY_PREF_WL_NOTIFY, wl_notify_value);
-
-        cv.put(MyContentProvider.KEY_PREF_PUMPS_NOTIFY, pumps_notify_value);
-        cv.put(MyContentProvider.KEY_PREF_RELAYS_NOTIFY, relays_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_PUMPS_NOTIFY, pumps_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_RELAYS_NOTIFY, relays_notify_value);
 
 
-        Uri newUri = ContentUris.withAppendedId(MyContentProvider.PREF_CONTENT_URI, Long.parseLong(controller_id));
-        int cnt = getContentResolver().update(newUri, cv, null, null);
-        Log.d(LOG_TAG, "Update URI to dispatch: " + (newUri.toString()));
+            Uri newUri = ContentUris.withAppendedId(MyContentProvider.PREF_CONTENT_URI, Long.parseLong(controller_id));
+            int cnt = getContentResolver().update(newUri, cv, null, null);
+            Log.d(LOG_TAG, "Update URI to dispatch: " + (newUri.toString()));
+
+        }
 
     }
     @Override

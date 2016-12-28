@@ -59,6 +59,8 @@ import cc.growapp.growapp.services.BackgroundService;
 public class MainActivity extends AppCompatActivity implements
         View.OnTouchListener,
         DataBroker.set_action.onSetActionComplete
+
+
         {
 
     boolean prog_toggle=true;
@@ -323,6 +325,20 @@ public class MainActivity extends AppCompatActivity implements
 
     private void launch_set_action(String action) {
         actionField.setText(action);
+        //if(!action.equals("3"))call_to_refresh();
+        //launch_set_action("3");
+
+        Intent intent = new Intent(this, BackgroundService.class);
+        intent.putExtra("controller_id",controller_id);
+        intent.putExtra("emergency_call", true);
+        startService(intent);
+
+
+
+        //new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
+
+        //new ActionHandler(getApplicationContext(),statusField, reciviedField).execute(user_hash,controller_id, "3"); //Сигнал Arduino на сбор данных
+        last_refresh_time=System.currentTimeMillis();
 
 
         //Запишем в локльную БД, состояние измененых реле, насосов, чтоб после обновления экрана
@@ -646,7 +662,7 @@ public class MainActivity extends AppCompatActivity implements
                     //Если прошло больше 10 секунд, с последнего изменения интерфейса, то разрешим обновится (см. call_to_refresh)
                     if(System.currentTimeMillis()-last_refresh_time> GrowappConstants.get_data_timeout){
 
-                        Toast.makeText(this,getString(R.string.loadingsystemstate),Toast.LENGTH_SHORT);
+                        Toast.makeText(this,getString(R.string.loadingsystemstate),Toast.LENGTH_SHORT).show();
 
                         //pDialog.show();
                         //pDialog.setMessage(getString(R.string.loadingsystemstate));
@@ -654,7 +670,7 @@ public class MainActivity extends AppCompatActivity implements
                         //new DataBroker.get_system_state(this).execute(controller_id, hash);
                         //new GetSystemState().execute();
                         last_refresh_time=System.currentTimeMillis();
-                        call_to_refresh();
+                        launch_set_action("3");
 
                     }
                 }
@@ -750,15 +766,9 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    private void call_to_refresh(){
-        launch_set_action("3");
-        Intent intent = new Intent(this, BackgroundService.class);
-        intent.putExtra("controller_id",controller_id);
-        intent.putExtra("emergency_call",true);
-        startService(intent);
-        //new ActionHandler(getApplicationContext(),statusField, reciviedField).execute(user_hash,controller_id, "3"); //Сигнал Arduino на сбор данных
-        last_refresh_time=System.currentTimeMillis();
-    }
+    /*private void call_to_refresh(){
+
+    }*/
 
 
 
@@ -922,16 +932,16 @@ public class MainActivity extends AppCompatActivity implements
             public void onClick(DialogInterface dialog, int whichButton) {
                 //String url="http://growapp.e-nk.ru/core/add_data/edit_ctrl_name.php";
 
-                String new_name=edt.getText().toString();
+                String new_name = edt.getText().toString();
 
                 //Изменим название в списке, котрым наполняем спиннер
-                int index=ctrl_ids_list.indexOf(String.valueOf(controller_id));
+                int index = ctrl_ids_list.indexOf(String.valueOf(controller_id));
                 ctrl_names_list.set(index, new_name);
-                ctrl_names_data[index]=new_name;
+                ctrl_names_data[index] = new_name;
 
                 //Изменим название в БД
                 ContentValues cv = new ContentValues();
-                cv.put(MyContentProvider.KEY_CTRL_NAME,new_name);
+                cv.put(MyContentProvider.KEY_CTRL_NAME, new_name);
                 Uri newUri = ContentUris.withAppendedId(MyContentProvider.CTRLS_CONTENT_URI, Long.parseLong(controller_id));
                 int cnt = getContentResolver().update(newUri, cv, null, null);
                 Log.d(LOG_TAG, "Update URI to dispatch: " + (newUri.toString()));
@@ -956,19 +966,21 @@ public class MainActivity extends AppCompatActivity implements
     ContentValues get_main_data(String ctrl_id){
         Cursor cursor_dev_profile = getContentResolver().query(Uri.parse(MyContentProvider.DEV_PROFILE_CONTENT_URI+"/"+ctrl_id), null, null, null, null);
         if(cursor_dev_profile!=null){
-            cursor_dev_profile.moveToFirst();
-            l_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
-            t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
-            h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
-            pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
-            pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
-            pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
-            pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
-            relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
-            relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
-            water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
-            auto_watering1= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING1));
-            auto_watering2= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING2));
+            if(cursor_dev_profile.moveToFirst()){
+                l_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
+                t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
+                h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
+                pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
+                pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
+                pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
+                pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
+                relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
+                relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
+                water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
+                auto_watering1= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING1));
+                auto_watering2= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING2));
+
+            }
             cursor_dev_profile.close();
         }
 
@@ -1005,7 +1017,8 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    public class MainObserver extends ContentObserver {
+
+            public class MainObserver extends ContentObserver {
         public MainObserver(Handler handler) {
             super(handler);
         }

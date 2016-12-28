@@ -16,6 +16,7 @@ import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
@@ -106,6 +107,7 @@ public class BackgroundService extends IntentService implements
 */
         //Запишем в SP, для информации, когда запустится сервис
         long earliest_time=0;
+        long period_in_ms=0;
 
         Cursor cursor_local = getContentResolver().query(MyContentProvider.LOCAL_CONTENT_URI, null, null, null, null);
         if(cursor_local!=null) {
@@ -119,6 +121,7 @@ public class BackgroundService extends IntentService implements
                         if(cursor_pref.moveToFirst()){
                             period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
                             if(emergency_call && emergency_ctrl_id.equals(controller_id))period=GrowappConstants.get_data_timeout;
+                            period_in_ms=period*1000;
                         }
                         cursor_pref.close();
                     }
@@ -130,21 +133,20 @@ public class BackgroundService extends IntentService implements
                     Log.d(LOG_TAG, "Current time: " + new Date(current_time));
                     Log.d(LOG_TAG, "Period: " + period);
 
-                    //if(start_time==0){
-
-                    //}
 
                     //Ordering is important
                     //1 Если время старта, больше чем текущее время + период
-                    Log.d(LOG_TAG, "Diffrence: "+ Math.abs(current_time-start_time) + " Period: "+period*1000);
+                    long diffrence = current_time - start_time;
+                    Log.d(LOG_TAG, "Difference: "+ diffrence + " Period in ms: "+ period_in_ms);
+
                     //period*1000
-                    if(start_time==0 || Math.abs(current_time - start_time)==0 || start_time<current_time){
+                    if(start_time==0 || diffrence==0 || Math.abs(diffrence)>=period_in_ms || start_time<current_time){
 
                         //Обрабатываем контроллер
                         Log.d(LOG_TAG, "Set new start time for the device: "+ controller_id);
                         // И его время старта
 
-                        start_time=current_time+period*1000;
+                        start_time=current_time+period_in_ms;
                         Log.d(LOG_TAG, "New start time : "+ new Date(start_time));
 
                         ContentValues cv = new ContentValues();
@@ -159,6 +161,8 @@ public class BackgroundService extends IntentService implements
                         //Запускаем процесс получения данных датчиков
                         sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
                         String hash = sPref.getString("hash", "");
+
+                        Toast.makeText(this, controller_id, Toast.LENGTH_SHORT).show();
                         new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
 
                     } else Log.d(LOG_TAG, "Skipping the device: "+ controller_id);
@@ -201,10 +205,12 @@ public class BackgroundService extends IntentService implements
 
             }
             AlarmManager alarm = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-            PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class), PendingIntent.FLAG_CANCEL_CURRENT);
+            PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class) , PendingIntent.FLAG_CANCEL_CURRENT);
 
-            alarm.set(AlarmManager.RTC_WAKEUP, start_time, pending);
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                alarm.setExact(AlarmManager.RTC_WAKEUP, start_time, pending);
+            } else alarm.set(AlarmManager.RTC_WAKEUP, start_time, pending);
             //Запишем в SP, для информации, когда запустится сервис
             Log.d(LOG_TAG, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Next start time: " + new Date(start_time));
         }
@@ -220,6 +226,7 @@ public class BackgroundService extends IntentService implements
 
     void sendNotif(String ctrl_id, String message) {
         Log.d(LOG_TAG, "Starting notification");
+
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra("controller_id", ctrl_id);
@@ -335,58 +342,63 @@ public class BackgroundService extends IntentService implements
 
                 Cursor cursor_dev_profile = getContentResolver().query(Uri.parse(MyContentProvider.DEV_PROFILE_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
                 if(cursor_dev_profile!=null){
-                    cursor_dev_profile.moveToFirst();
-                    l_control = cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
-                    t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
-                    h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
-                    pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
-                    pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
-                    pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
-                    pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
-                    relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
-                    relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
-                    water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
+                    if(cursor_dev_profile.moveToFirst()){
+                        l_control = cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
+                        t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
+                        h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
+                        pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
+                        pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
+                        pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
+                        pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
+                        relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
+                        relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
+                        water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
+                    }
+
                     cursor_dev_profile.close();
                 }
 
                 Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
                 if(cursor_pref!=null){
-                    cursor_pref.moveToFirst();
-                    //version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
+                    if(cursor_pref.moveToFirst()){
+                        //version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
 
 
-                    t_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MIN));
-                    t_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MAX));
+                        t_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MIN));
+                        t_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MAX));
 
 
-                    h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MIN));
-                    h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MAX));
+                        h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MIN));
+                        h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MAX));
 
 
-                    pot1_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MIN));
-                    pot1_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MAX));
+                        pot1_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MIN));
+                        pot1_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MAX));
 
 
-                    pot2_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MIN));
-                    pot2_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MAX));
+                        pot2_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MIN));
+                        pot2_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MAX));
 
 
-                    wl_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MIN));
-                    wl_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MAX));
+                        wl_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MIN));
+                        wl_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MAX));
 
-                    l_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_L_NOTIFY))!=0);
-                    t_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_NOTIFY))!=0);
-                    h_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_NOTIFY))!=0);
-                    pot1_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_NOTIFY))!=0);
-                    pot2_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_NOTIFY))!=0);
-                    wl_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_NOTIFY))!=0);
-                    pumps_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PUMPS_NOTIFY))!=0);
-                    relays_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_RELAYS_NOTIFY))!=0);
-                    all_notify_value=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
+                        l_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_L_NOTIFY))!=0);
+                        t_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_NOTIFY))!=0);
+                        h_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_NOTIFY))!=0);
+                        pot1_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_NOTIFY))!=0);
+                        pot2_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_NOTIFY))!=0);
+                        wl_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_NOTIFY))!=0);
+                        pumps_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PUMPS_NOTIFY))!=0);
+                        relays_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_RELAYS_NOTIFY))!=0);
+                        all_notify_value=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
 
 
-                    version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
-                    period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
+                        version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
+                        period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
+
+                    }
+
 
                     cursor_pref.close();
                     Log.d(LOG_TAG, "T notify: " + t_notify_value);
@@ -398,20 +410,22 @@ public class BackgroundService extends IntentService implements
 
                 Cursor cursor_main = getContentResolver().query(Uri.parse(MyContentProvider.MAIN_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
                 if(cursor_main!=null){
-                    cursor_main.moveToFirst();
-                    l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
-                    t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
-                    h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
-                    pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
-                    pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
-                    p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
-                    p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
-                    relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
-                    relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
-                    w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
-                    date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
-                    Log.d(LOG_TAG, "Date from external DB = " + date);
-                    Log.d(LOG_TAG, "Date from local DB  = " + date_result);
+                    if(cursor_main.moveToFirst()){
+                        l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
+                        t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
+                        h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
+                        pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
+                        pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
+                        p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
+                        p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
+                        relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
+                        relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
+                        w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
+                        date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
+                        Log.d(LOG_TAG, "Date from external DB = " + date);
+                        Log.d(LOG_TAG, "Date from local DB  = " + date_result);
+
+                    }
                     cursor_main.close();
                 }
 
@@ -454,226 +468,15 @@ public class BackgroundService extends IntentService implements
 
 
                 //TODO Записывает даже если даты одинаковые, теряется производительность
-                Toast.makeText(this, R.string.app_name, Toast.LENGTH_SHORT).show();
                 Log.d(LOG_TAG, "Callback, for ctrl_id: " + result.getAsString("ctrl_id"));
                 Uri uri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(result.getAsString("ctrl_id")));
                 int cnt = getContentResolver().update(uri, result, null, null);
                 Log.d(LOG_TAG, "Number of device updated: " + cnt);
 
+
             }
         }
 
-
-        /*Log.d(LOG_TAG, "Server answer: " + s);
-        if(s!=null){
-            Log.d(LOG_TAG, "Callback, system state: " + s);
-            try {
-                JSONObject json = new JSONObject(s);
-                int success;
-                String TAG_SUCCESS="success";
-                success = json.getInt(TAG_SUCCESS);
-                if (success == 1){
-                    // Успешно получены данные
-                    JSONArray DevProfileObj = json.getJSONArray("data");
-                    Log.d(LOG_TAG, "JSON data has been received ...");
-
-                    // получаем первый обьект с JSON Array
-                    JSONObject dev_profile_json = DevProfileObj.getJSONObject(0);
-                    Log.d(LOG_TAG, "First JSON object has been recevied = " + dev_profile_json);
-
-                    // получаем обьекты с JSON Array
-                    String ctrl_id = dev_profile_json.getString("ctrl_id").trim();
-                    //String ctrl_id_string = String.valueOf(ctrl_id);
-                    int light_state = Integer.parseInt(dev_profile_json.getString("light_state"));
-                    int t = Integer.parseInt(dev_profile_json.getString("t"));
-                    int h = Integer.parseInt(dev_profile_json.getString("h"));
-                    int pot1_h = Integer.parseInt(dev_profile_json.getString("pot1_h"));
-                    int pot2_h = Integer.parseInt(dev_profile_json.getString("pot2_h"));
-                    int relay1_state = Integer.parseInt(dev_profile_json.getString("relay1_state"));
-                    int relay2_state = Integer.parseInt(dev_profile_json.getString("relay2_state"));
-                    int pump1_state = Integer.parseInt(dev_profile_json.getString("pump2_state"));
-                    int pump2_state = Integer.parseInt(dev_profile_json.getString("pump2_state"));
-                    int water_level = Integer.parseInt(dev_profile_json.getString("water_level"));
-                    String date = dev_profile_json.getString("date");
-
-/*
-
-
-                    //Выцепляем с базы, какие компоненты системы нам доступны
-                    //После чего отсылаем уведомления, соответсвующие комплектации
-                    Cursor cursor_dev_profile = getContentResolver().query(Uri.parse(MyContentProvider.DEV_PROFILE_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
-                    if(cursor_dev_profile!=null){
-                        cursor_dev_profile.moveToFirst();
-                        l_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
-                        t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
-                        h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
-                        pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
-                        pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
-                        pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
-                        pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
-                        relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
-                        relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
-                        water_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
-                        cursor_dev_profile.close();
-                    }
-
-                    Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
-                    if(cursor_pref!=null){
-                        cursor_pref.moveToFirst();
-                        //version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
-
-                        t_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MIN));
-                        t_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_MAX));
-
-
-                        h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MIN));
-                        h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_MAX));
-
-
-                        pot1_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MIN));
-                        pot1_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_H_MAX));
-
-
-                        pot2_h_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MIN));
-                        pot2_h_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_H_MAX));
-
-
-                        wl_min_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MIN));
-                        wl_max_value = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_MAX));
-
-                        l_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_L_NOTIFY))!=0);
-                        t_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_T_NOTIFY))!=0);
-                        h_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_H_NOTIFY))!=0);
-                        pot1_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT1_NOTIFY))!=0);
-                        pot2_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_POT2_NOTIFY))!=0);
-                        wl_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_WL_NOTIFY))!=0);
-                        pumps_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PUMPS_NOTIFY))!=0);
-                        relays_notify_value = (cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_RELAYS_NOTIFY))!=0);
-                        all_notify_value=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
-
-
-                        version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
-                        period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
-                        sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
-                        vibrator_type = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VIBRATE));
-                        color = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_COLOR));
-
-                        ringtone_title = RingtoneManager.getRingtone(this,Uri.parse(sound)).getTitle(this);
-
-                        color_name="Green";
-                        switch (color){
-                            case -65536:color_name="Red";break;
-                            case -16711936:color_name="Green";break;
-                            case -256:color_name="Yellow";break;
-                            case -16776961:color_name="Blue";break;
-                        }
-
-
-                        switch(vibrator_type){
-                            case "No":vibrate= new long[] {0};break;
-                            case "Short":vibrate= new long[] {1000,1000};break;
-                            case "Long":vibrate= new long[] {1000,1000,1000,1000};break;
-                        }
-
-
-                        cursor_pref.close();
-                        Log.d(LOG_TAG, "T notify: " + t_notify_value);
-                        //Log.d(LOG_TAG, "Version: : " + version);
-
-                        Log.d(LOG_TAG, "t from external DB = " + t);
-                        Log.d(LOG_TAG, "t from local DB = " + t_max_value);
-                    }
-
-
-                    Cursor cursor_main = getContentResolver().query(Uri.parse(MyContentProvider.MAIN_CONTENT_URI + "/" + ctrl_id), null, null, null, null);
-                    if(cursor_main!=null){
-                        cursor_main.moveToFirst();
-                        l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
-                        t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
-                        h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
-                        pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
-                        pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
-                        p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
-                        p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
-                        relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
-                        relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
-                        w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
-                        date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
-                        Log.d(LOG_TAG, "Date from external DB = " + date);
-                        Log.d(LOG_TAG, "Date from local DB  = " + date_result);
-                        cursor_main.close();
-                    }
-
-
-                    
-
-                    if (!all_notify_value && !date.equals(date_result) && !date_result.isEmpty() && !ctrl_id.equals("")) {
-                        if ((t > t_max_value || t < t_min_value) && t_notify_value && t_control==1)
-                            sendNotif(ctrl_id, "Температура воздуха " + t + "!");
-                        if ((h > h_max_value || h < h_min_value) && h_notify_value && h_control==1)
-                            sendNotif(ctrl_id, "Влажность воздуха " + h + "!");
-                        if ((pot1_h > pot1_h_max_value || pot1_h < pot1_h_min_value) && pot1_notify_value && pot1_control==1)
-                            sendNotif(ctrl_id, "Влажность 1 горшка " + pot1_h + "!");
-                        if ((pot2_h > pot2_h_max_value || pot2_h < pot2_h_min_value) && pot2_notify_value && pot2_control==1)
-                            sendNotif(ctrl_id, "Влажность 2 горшка " + pot2_h + "!");
-                        if ((water_level > wl_max_value || water_level < wl_min_value) && wl_notify_value && water_control==1)
-                            sendNotif(ctrl_id, "Уровень дыма " + water_level + "!");
-
-                        if (l_result != light_state && l_notify_value && l_control==1) {
-                            if (light_state == 1) sendNotif(ctrl_id, "Свет включился!");
-                            if (light_state == 0) sendNotif(ctrl_id, "Свет выключился!");
-                        }
-                        if (relay1_result != relay1_state && relays_notify_value  && relay1_control==1) {
-                            if (relay1_state == 0) sendNotif(ctrl_id, "Реле 1 включился!");
-                            if (relay1_state == 1) sendNotif(ctrl_id, "Реле 1 выключился!");
-                        }
-                        if (relay2_result != relay2_state && relays_notify_value  && relay2_control==1) {
-                            if (relay2_state == 0) sendNotif(ctrl_id, "Реле 2 включился!");
-                            if (relay2_state == 1) sendNotif(ctrl_id, "Реле 2 выключился!");
-                        }
-                        if (p1_result != pump1_state && pumps_notify_value && pump1_control==1) {
-                            if (pump1_state == 1) sendNotif(ctrl_id, "Насос 1 включился!");
-                            if (pump1_state == 0) sendNotif(ctrl_id, "Насос 1 выключился!");
-                        }
-                        if (p2_result != pump2_state && pumps_notify_value && pump2_control==1) {
-                            if (pump2_state == 1) sendNotif(ctrl_id, "Насос 2 включился!");
-                            if (pump2_state == 0) sendNotif(ctrl_id, "Насос 2 выключился!");
-                        }
-
-                    }
-
-
-                    ContentValues cv = new ContentValues();
-                    cv.put(MyContentProvider.KEY_MAIN_CTRL_ID,ctrl_id);
-                    cv.put(MyContentProvider.KEY_MAIN_LIGHT_STATE,light_state);
-                    cv.put(MyContentProvider.KEY_MAIN_T,t);
-                    cv.put(MyContentProvider.KEY_MAIN_H,h);
-                    cv.put(MyContentProvider.KEY_MAIN_POT1_H,pot1_h);
-                    cv.put(MyContentProvider.KEY_MAIN_POT2_H,pot2_h);
-                    cv.put(MyContentProvider.KEY_MAIN_RELAY1_STATE,relay1_state);
-                    cv.put(MyContentProvider.KEY_MAIN_RELAY2_STATE,relay2_state);
-                    cv.put(MyContentProvider.KEY_MAIN_PUMP1_STATE,pump1_state);
-                    cv.put(MyContentProvider.KEY_MAIN_PUMP2_STATE,pump2_state);
-                    cv.put(MyContentProvider.KEY_MAIN_WATER_LEVEL,water_level);
-                    cv.put(MyContentProvider.KEY_MAIN_DATE,date);
-
-                    Uri uri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(ctrl_id));
-                    int cnt = getContentResolver().update(uri, cv, null, null);
-                    Log.d(LOG_TAG, "Number of device updated: " + cnt);
-
-
-
-
-
-                }else{
-                    Log.d(LOG_TAG, "Data not found");
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.d(LOG_TAG, "Server does not answer");
-        }*/
 
     }
 

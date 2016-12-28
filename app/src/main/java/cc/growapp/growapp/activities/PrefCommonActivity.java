@@ -35,19 +35,26 @@ import cc.growapp.growapp.services.BackgroundService;
 
 
 public class PrefCommonActivity extends AppCompatActivity
-        implements
-        DataBroker.save_user_profile.onSaveUserProfileComplete
 {
 
 
     String LOG_TAG="PreferencesActivity";
 
     String hash;
-    int period,version;
-    String sound;
+    int saved_period,version;
+    String saved_sound;
     String controller_id;
+    String saved_vibrator_type;
+    int saved_color;
+
+
+    int period;
+    String sound;
     String vibrator_type;
     int color;
+
+
+
     CheckBox all_notify;
 
 
@@ -60,6 +67,8 @@ public class PrefCommonActivity extends AppCompatActivity
     Spinner spinner;
     TextView tv_ringtone_title,tv_vibrator_title,tv_notifcolor;
 
+    boolean is_modified=false;
+    boolean saved_all_notify;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,87 +84,89 @@ public class PrefCommonActivity extends AppCompatActivity
 
         Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI+"/"+controller_id), null, null, null, null);
         if(cursor_pref!=null) {
-            cursor_pref.moveToFirst();
-
-            version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
-            period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
-            sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
-            vibrator_type = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VIBRATE));
-            color = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_COLOR));
-            boolean saved_all_notify=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
-
-            Log.d(LOG_TAG,"All notify: "+saved_all_notify);
-            all_notify = (CheckBox) findViewById(R.id.cb_notify_all);
-            if(saved_all_notify)all_notify.setChecked(true); else all_notify.setChecked(false);
-
-            String ringtone_title = RingtoneManager.getRingtone(this,Uri.parse(sound)).getTitle(this);
-
-            String color_name="Green";
-            switch (color){
-                case -65536:color_name="Red";break;
-                case -16711936:color_name="Green";break;
-                case -256:color_name="Yellow";break;
-                case -16776961:color_name="Blue";break;
-            }
+            if(cursor_pref.moveToFirst()){
+                version = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VERSION));
+                saved_period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
+                saved_sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
+                saved_vibrator_type = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VIBRATE));
+                saved_color = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_COLOR));
+                saved_all_notify=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
 
 
-            Log.d(LOG_TAG,"Version: "+version);
-            Log.d(LOG_TAG,"Period: "+period);
-            Log.d(LOG_TAG,"Ringtone title: "+ringtone_title);
-            Log.d(LOG_TAG,"Vibrator type: "+vibrator_type);
-            Log.d(LOG_TAG,"Color: "+color_name);
+                //Need, if nothing was changed
+                period=saved_period;
+                sound=saved_sound;
+                vibrator_type=saved_vibrator_type;
+                color=saved_color;
 
-            tv_ringtone_title = (TextView) findViewById(R.id.pref_tv_setnotifsound);
-            tv_ringtone_title.setText(ringtone_title);
+                Log.d(LOG_TAG,"All notify: "+saved_all_notify);
+                all_notify = (CheckBox) findViewById(R.id.cb_notify_all);
+                if(saved_all_notify)all_notify.setChecked(true); else all_notify.setChecked(false);
+                String ringtone_title = RingtoneManager.getRingtone(this,Uri.parse(saved_sound)).getTitle(this);
 
-            tv_vibrator_title = (TextView) findViewById(R.id.pref_tv_setnotifvibrate);
-            tv_vibrator_title.setText(vibrator_type);
-
-            tv_notifcolor = (TextView) findViewById(R.id.pref_tv_setnotifcolor);
-            tv_notifcolor.setText(color_name);
-
-
-            spinner = (Spinner) findViewById(R.id.pref_period_spinner);
-
-            periodSpinnerArray= new String[]{
-                    getString(R.string.min1),
-                    getString(R.string.min15),
-                    getString(R.string.hour),
-                    getString(R.string.hour2)
-            };
-
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                    android.R.layout.simple_spinner_item, periodSpinnerArray);
-
-            spinner.setAdapter(adapter);
-
-            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                    Log.d(LOG_TAG, "Selected period: " + spinner.getSelectedItem());
-                    spinner_index = spinner.getSelectedItemPosition();
+                String color_name="Green";
+                switch (saved_color){
+                    case -65536:color_name="Red";break;
+                    case -16711936:color_name="Green";break;
+                    case -256:color_name="Yellow";break;
+                    case -16776961:color_name="Blue";break;
                 }
 
-                public void onNothingSelected(AdapterView<?> adapterView) {
 
+                Log.d(LOG_TAG,"Version: "+version);
+                Log.d(LOG_TAG,"Period: "+saved_period);
+                Log.d(LOG_TAG,"Ringtone title: "+ringtone_title);
+                Log.d(LOG_TAG,"Vibrator type: "+saved_vibrator_type);
+                Log.d(LOG_TAG,"Color: "+color_name);
+
+                tv_ringtone_title = (TextView) findViewById(R.id.pref_tv_setnotifsound);
+                tv_ringtone_title.setText(ringtone_title);
+
+                tv_vibrator_title = (TextView) findViewById(R.id.pref_tv_setnotifvibrate);
+                tv_vibrator_title.setText(saved_vibrator_type);
+
+                tv_notifcolor = (TextView) findViewById(R.id.pref_tv_setnotifcolor);
+                tv_notifcolor.setText(color_name);
+
+
+                spinner = (Spinner) findViewById(R.id.pref_period_spinner);
+
+                periodSpinnerArray= new String[]{
+                        getString(R.string.min1),
+                        getString(R.string.min15),
+                        getString(R.string.hour),
+                        getString(R.string.hour2)
+                };
+
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                        android.R.layout.simple_spinner_item, periodSpinnerArray);
+
+                spinner.setAdapter(adapter);
+
+                spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                        Log.d(LOG_TAG, "Selected period: " + spinner.getSelectedItem());
+                        spinner_index = spinner.getSelectedItemPosition();
+                    }
+
+                    public void onNothingSelected(AdapterView<?> adapterView) {
+
+                    }
+                });
+                int index=0;
+                switch (saved_period){
+                    case 60:index=0;break;
+                    case 900:index=1;break;
+                    case 3600:index=2;break;
+                    case 7200:index=3;break;
                 }
-            });
-            int index=0;
-            switch (period){
-                case 60:index=0;break;
-                case 900:index=1;break;
-                case 3600:index=2;break;
-                case 7200:index=3;break;
+                spinner.setSelection(index);
             }
-            spinner.setSelection(index);
+            cursor_pref.close();
+
 
 
         }
-
-
-
-
-
-
 
 
         if(getSupportActionBar()!=null){
@@ -178,9 +189,8 @@ public class PrefCommonActivity extends AppCompatActivity
     }
     @Override
     protected void onPause() {
-        super.onPause();
-        version++;
 
+        super.onPause();
         Spinner spinner = (Spinner) findViewById(R.id.pref_period_spinner);
         int spinner_index = spinner.getSelectedItemPosition();
 
@@ -193,30 +203,39 @@ public class PrefCommonActivity extends AppCompatActivity
 
         all_notify = (CheckBox) findViewById(R.id.cb_notify_all);
         int all_notify_value = all_notify.isChecked() ? 1 : 0;
+
         Log.d(LOG_TAG, "all_notify_value : " + all_notify_value );
+        Log.d(LOG_TAG, "saved_all_notify : " + (saved_all_notify ? 1 : 0));
+
+        Log.d(LOG_TAG, "sound: " + sound );
+        Log.d(LOG_TAG, "saved_sound: " + saved_sound );
 
 
+        if(period!=saved_period)is_modified = true;
+        if(!sound.equals(saved_sound))is_modified = true;
+        if(!vibrator_type.equals(saved_vibrator_type))is_modified = true;
+        if(color!=saved_color)is_modified = true;
+        if(all_notify_value!=(saved_all_notify ? 1 : 0))is_modified = true;
+
+        if(is_modified){
+            version++;
+            Log.d(LOG_TAG, "Saving notif preferences in internal DB, version: " + version);
 
 
+            ContentValues cv = new ContentValues();
+            cv.put(MyContentProvider.KEY_PREF_CTRL_ID, controller_id);
+            cv.put(MyContentProvider.KEY_PREF_VERSION, version);
+            cv.put(MyContentProvider.KEY_PREF_ALL_NOTIFY, all_notify_value);
+            cv.put(MyContentProvider.KEY_PREF_PERIOD, period);
+            cv.put(MyContentProvider.KEY_PREF_SOUND, sound);
+            cv.put(MyContentProvider.KEY_PREF_VIBRATE, vibrator_type);
+            cv.put(MyContentProvider.KEY_PREF_COLOR, color);
 
-        Log.d(LOG_TAG, "Saving notif preferences in internal DB, version: " + version);
+            Uri newUri = ContentUris.withAppendedId(MyContentProvider.PREF_CONTENT_URI, Long.parseLong(controller_id));
+            int cnt = getContentResolver().update(newUri, cv, null, null);
+            Log.d(LOG_TAG, "Update URI to dispatch: " + (newUri.toString()));
 
-
-        ContentValues cv = new ContentValues();
-        cv.put(MyContentProvider.KEY_PREF_CTRL_ID, controller_id);
-        cv.put(MyContentProvider.KEY_PREF_VERSION, version);
-        cv.put(MyContentProvider.KEY_PREF_ALL_NOTIFY, all_notify_value);
-        cv.put(MyContentProvider.KEY_PREF_PERIOD, period);
-        cv.put(MyContentProvider.KEY_PREF_SOUND, sound);
-        cv.put(MyContentProvider.KEY_PREF_VIBRATE, vibrator_type);
-        cv.put(MyContentProvider.KEY_PREF_COLOR, color);
-
-        Uri newUri = ContentUris.withAppendedId(MyContentProvider.PREF_CONTENT_URI, Long.parseLong(controller_id));
-        int cnt = getContentResolver().update(newUri, cv, null, null);
-        Log.d(LOG_TAG, "Update URI to dispatch: " + (newUri.toString()));
-
-
-
+        }
 
 
     }
@@ -239,12 +258,12 @@ public class PrefCommonActivity extends AppCompatActivity
 
 
                 //sPref.getString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)));
-        if (sound!= null) {
-            if (sound.length() == 0) {
+        if (saved_sound!= null) {
+            if (saved_sound.length() == 0) {
                 // Select "Silent"
                 intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, (Uri) null);
             } else {
-                intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(sound));
+                intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(saved_sound));
             }
         } else {
             // No ringtone has been selected, set to the default
@@ -274,7 +293,7 @@ public class PrefCommonActivity extends AppCompatActivity
 
         //sPref.getString("Vibrator", "Short");
 
-        switch (vibrator_type){
+        switch (saved_vibrator_type){
             case "No":no_vibrator.setChecked(true);break;
             case "Short":short_vibrator.setChecked(true);break;
             case "Long":long_vibrator.setChecked(true);break;
@@ -326,7 +345,7 @@ public class PrefCommonActivity extends AppCompatActivity
 
         //sPref.getInt("NotifColor", -16711936);
 
-        switch(color){
+        switch(saved_color){
             case -65536:rbtn_red.setChecked(true);break;
             case -16711936:rbtn_green.setChecked(true);break;
             case -256:rbtn_yellow.setChecked(true);break;
@@ -388,14 +407,5 @@ public class PrefCommonActivity extends AppCompatActivity
         }
     }
 
-    // ------------------------------------------------------------------------------------
-    @Override
-    public void onSaveUserProfileCompleteMethod(String s) {
-        if(s!=null){
-            if(s.equals("answer=1")){
-                Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show();
-                startService(new Intent(this, BackgroundService.class));
-            } else Toast.makeText(this, "Настройки не сохранены, проверьте соединение с интернетом.", Toast.LENGTH_SHORT).show();
-        }
-    }
+
 }

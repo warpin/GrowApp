@@ -1,8 +1,11 @@
 package cc.growapp.growapp.activities;
 import android.app.ProgressDialog;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -29,6 +32,9 @@ import com.github.mikephil.charting.utils.ViewPortHandler;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.LinkedList;
+import java.util.List;
 
 import cc.growapp.growapp.DataBroker;
 import cc.growapp.growapp.database.MyContentProvider;
@@ -484,20 +490,40 @@ public class GraphsActivity extends AppCompatActivity implements
         //Log.d(LOG_TAG, "Spinner [0]=" + param_spinner_data[0]);
         // адаптер
         //Выцепляем с базы, какие компоненты системы нам доступны
-        /*TODO Content Provider
-        Dev_profile dev_profile = db.getDevProfile(controller_id);
-        //Log.d("Tag Name", dev_profile.getTagName());
-        int l_control= dev_profile.get_light_control();
-        int t_control= dev_profile.get_t_control();
-        int h_control= dev_profile.get_h_control();
-        int pot1_control= dev_profile.get_pot1_control();
-        int pot2_control= dev_profile.get_pot2_control();
-        int pump1_control= dev_profile.get_pump1_control();
-        int pump2_control= dev_profile.get_pump2_control();
-        int relay1_control= dev_profile.get_relay1_control();
-        int relay2_control= dev_profile.get_relay2_control();
-        int custom_control= dev_profile.get_water_control();
-        db.closeDB();
+
+        int l_control=0;
+        int t_control=0;
+        int h_control=0;
+        int pot1_control=0;
+        int pot2_control=0;
+        int pump1_control=0;
+        int pump2_control=0;
+        int relay1_control=0;
+        int relay2_control=0;
+        int co2_control=0;
+        int auto_watering1=0;
+        int auto_watering2=0;
+
+        Cursor cursor_dev_profile = getContentResolver().query(Uri.parse(MyContentProvider.DEV_PROFILE_CONTENT_URI + "/" + controller_id), null, null, null, null);
+        if(cursor_dev_profile!=null){
+            if(cursor_dev_profile.moveToFirst()){
+                l_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_LIGHT_CONTROL));
+                t_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_T_CONTROL));
+                h_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_H_CONTROL));
+                pot1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT1_CONTROL));
+                pot2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_POT2_CONTROL));
+                pump1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP1_CONTROL));
+                pump2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_PUMP2_CONTROL));
+                relay1_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY1_CONTROL));
+                relay2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_RELAY2_CONTROL));
+                co2_control= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_WATER_CONTROL));
+                auto_watering1= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING1));
+                auto_watering2= cursor_dev_profile.getInt(cursor_dev_profile.getColumnIndexOrThrow(MyContentProvider.KEY_DEV_AUTO_WATERING2));
+
+            }
+
+            cursor_dev_profile.close();
+        }
 
         //Преобразуем в массив
         List<String> params_names_list =new LinkedList<>();
@@ -505,9 +531,9 @@ public class GraphsActivity extends AppCompatActivity implements
         if(h_control!=0)params_names_list.add(getString(R.string.hum));
         if(pot1_control!=0)params_names_list.add(getString(R.string.pot1_hum));
         if(pot2_control!=0)params_names_list.add(getString(R.string.pot2_hum));
-        if(custom_control!=0)params_names_list.add(getString(R.string.water_level));
+        if(co2_control!=0)params_names_list.add(getString(R.string.water_level));
 
-        param_spinner_data = params_names_list.toArray(new String[params_names_list.size()]);*/
+        param_spinner_data = params_names_list.toArray(new String[params_names_list.size()]);
 
         //Log.d(LOG_TAG, "Spinner [0]=" + ctrl_spinner_data[0]);
         // адаптер
