@@ -217,44 +217,6 @@ public class PrefCommonActivity extends AppCompatActivity
 
 
 
-        /*String saved_t_max = String.valueOf(preferences.get_t_max());
-        String saved_t_min = String.valueOf(preferences.get_t_min());
-        String saved_h_max = String.valueOf(preferences.get_h_max());
-        String saved_h_min = String.valueOf(preferences.get_h_min());
-        String saved_pot1_h_max = String.valueOf(preferences.get_pot1_h_max());
-        String saved_pot1_h_min = String.valueOf(preferences.get_pot1_h_min());
-        String saved_pot2_h_max = String.valueOf(preferences.get_pot2_h_max());
-        String saved_pot2_h_min = String.valueOf(preferences.get_pot2_h_min());
-        String saved_wl_max = String.valueOf(preferences.get_wl_max());
-        String saved_wl_min = String.valueOf(preferences.get_wl_min());
-        String saved_all_notify = String.valueOf((preferences.get_t_notify()!=0));
-        String saved_t_notify = String.valueOf((preferences.get_t_notify()!=0));
-        String saved_h_notify = String.valueOf((preferences.get_h_notify()!=0));
-        String saved_pot1_notify = String.valueOf((preferences.get_pot1_notify()!=0));
-        String saved_pot2_notify = String.valueOf((preferences.get_pot2_notify()!=0));
-        String saved_wl_notify = String.valueOf((preferences.get_wl_notify()!=0));
-        String saved_l_notify = String.valueOf((preferences.get_l_notify()!=0));
-        String saved_relays_notify = String.valueOf((preferences.get_relays_notify()!=0));
-        String saved_pumps_notify = String.valueOf((preferences.get_pumps_notify() != 0));
-        String period = String.valueOf(preferences.get_period());
-        String sound = preferences.get_sound();
-        String vibrator_type = String.valueOf(preferences.get_vibrate());
-        String color = String.valueOf(preferences.get_color());*/
-
-
-
-
-        /*new DataBroker.save_user_profile(this).execute(controller_id, hash,
-        saved_t_max, saved_t_min,
-                saved_h_max, saved_h_min,
-                saved_pot1_h_max, saved_pot1_h_min,
-                saved_pot2_h_max, saved_pot2_h_min,
-                saved_wl_max, saved_wl_min,
-                saved_all_notify,
-                saved_t_notify, saved_h_notify,
-                saved_pot1_notify, saved_pot2_notify,
-                saved_wl_notify, saved_l_notify,
-                saved_relays_notify, saved_pumps_notify, period, sound, vibrator_type, color);*/
 
 
     }

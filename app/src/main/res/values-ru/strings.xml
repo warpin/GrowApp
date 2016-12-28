@@ -65,6 +65,7 @@
     <string name="default_string">По умолчанию</string>
     <string name="pump_time">Длительность полива</string>
     <string name="get_data">Запрос данных</string>
+    <string name="themes">Выбор темы</string>
 
 
 </resources>

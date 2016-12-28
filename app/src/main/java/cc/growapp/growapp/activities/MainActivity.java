@@ -58,8 +58,8 @@ import cc.growapp.growapp.services.BackgroundService;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnTouchListener,
-        DataBroker.set_action.onSetActionComplete,
-        DataBroker.get_system_state.onGetSystemStateComplete{
+        DataBroker.set_action.onSetActionComplete
+        {
 
     boolean prog_toggle=true;
     private static final String LOG_TAG = "MainActivity";
@@ -646,10 +646,12 @@ public class MainActivity extends AppCompatActivity implements
                     //Если прошло больше 10 секунд, с последнего изменения интерфейса, то разрешим обновится (см. call_to_refresh)
                     if(System.currentTimeMillis()-last_refresh_time> GrowappConstants.get_data_timeout){
 
-                        pDialog.show();
-                        pDialog.setMessage(getString(R.string.loadingsystemstate));
+                        Toast.makeText(this,getString(R.string.loadingsystemstate),Toast.LENGTH_SHORT);
+
+                        //pDialog.show();
+                        //pDialog.setMessage(getString(R.string.loadingsystemstate));
                         //Запускаем процесс получения данных датчиков
-                        new DataBroker.get_system_state(this).execute(controller_id, hash);
+                        //new DataBroker.get_system_state(this).execute(controller_id, hash);
                         //new GetSystemState().execute();
                         last_refresh_time=System.currentTimeMillis();
                         call_to_refresh();
@@ -767,11 +769,8 @@ public class MainActivity extends AppCompatActivity implements
 
         //FrameLayout wcan1 = (FrameLayout) findViewById(R.id.frgm_pot1);
 
-        Frag_wcan1_off frag_wcan1_off;
-        Frag_wcan1_on frag_wcan1_on;
-
-        frag_wcan1_off = new Frag_wcan1_off();
-        frag_wcan1_on = new Frag_wcan1_on();
+        Frag_wcan1_off frag_wcan1_off = new Frag_wcan1_off();
+        Frag_wcan1_on frag_wcan1_on = new Frag_wcan1_on();
 
 
         String frag_wcan1_on_tag = "frag_wcan1_on";
@@ -1031,7 +1030,7 @@ public class MainActivity extends AppCompatActivity implements
 
         }
     }
-
+/*
     @Override
 
     public void onGetSystemStateCompleteMethod(String s) {
@@ -1061,7 +1060,7 @@ public class MainActivity extends AppCompatActivity implements
         }
         pDialog.dismiss();
     }
-
+*/
 
 }
 
