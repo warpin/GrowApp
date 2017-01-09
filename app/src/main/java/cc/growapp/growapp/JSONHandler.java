@@ -61,20 +61,20 @@ public class JSONHandler
 
 
                 int period = Integer.parseInt(profile.getString("period"));
-                String sound = profile.getString("sound");
+                //String sound = profile.getString("sound");
                 String vibrate = profile.getString("vibrate");
                 int color = Integer.parseInt(profile.getString("color"));
 
                 Uri default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
                 if(period==0)period=900;
-                if(sound.length()==0)sound=String.valueOf(default_sound_uri);
+                //if(sound.length()==0)sound=String.valueOf(default_sound_uri);
                 if(vibrate.length()==0)vibrate="Short";
                 if(color==0)color=-16711936;
 
 
                 cv.put(MyContentProvider.KEY_PREF_PERIOD, period);
-                cv.put(MyContentProvider.KEY_PREF_SOUND, sound);
+                //cv.put(MyContentProvider.KEY_PREF_SOUND, sound);
                 cv.put(MyContentProvider.KEY_PREF_VIBRATE, vibrate);
                 cv.put(MyContentProvider.KEY_PREF_COLOR, color);
 
@@ -111,21 +111,6 @@ public class JSONHandler
                 JSONObject dev_profile_json = DevProfileObj.getJSONObject(0);
                 Log.d(LOG_TAG, "Профиль устройства JSON получен = " + dev_profile_json);
 
-                // получаем обьекты с JSON Array
-                //int ctrl_id = Integer.parseInt(dev_profile_json.getString("ctrl_id"));
-                /*String ctrl_id = dev_profile_json.getString("ctrl_id");
-                int light_control = Integer.parseInt(dev_profile_json.getString("light_control"));
-                int t_control = Integer.parseInt(dev_profile_json.getString("t_control"));
-                int h_control = Integer.parseInt(dev_profile_json.getString("h_control"));
-                int pot1_control = Integer.parseInt(dev_profile_json.getString("pot1_control"));
-                int pot2_control = Integer.parseInt(dev_profile_json.getString("pot2_control"));
-                int relay1_control = Integer.parseInt(dev_profile_json.getString("relay1_control"));
-                int relay2_control = Integer.parseInt(dev_profile_json.getString("relay2_control"));
-                int pump1_control = Integer.parseInt(dev_profile_json.getString("pump2_control"));
-                int pump2_control = Integer.parseInt(dev_profile_json.getString("pump2_control"));
-                int water_control = Integer.parseInt(dev_profile_json.getString("water_control"));
-                int auto_watering1 = Integer.parseInt(dev_profile_json.getString("auto_watering1"));
-                int auto_watering2 = Integer.parseInt(dev_profile_json.getString("auto_watering2"));*/
 
                 ContentValues cv = new ContentValues();
                 cv.put(MyContentProvider.KEY_DEV_CTRL_ID,dev_profile_json.getString("ctrl_id"));

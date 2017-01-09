@@ -53,6 +53,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content">
             </FrameLayout>
+            <FrameLayout
+                android:id="@+id/frgm_co2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+            </FrameLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -207,22 +212,6 @@
             android:orientation="vertical"
             android:layout_gravity="bottom"
             android:id="@+id/linearLayout">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/wl"
-                    android:id="@+id/textView14"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/no_data"
-                    android:id="@+id/tv_wl_data"/>
-            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"

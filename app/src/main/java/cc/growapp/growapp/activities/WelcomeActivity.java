@@ -1,6 +1,7 @@
 package cc.growapp.growapp.activities;
 
 import android.app.AlertDialog;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -52,8 +53,8 @@ public class WelcomeActivity extends AppCompatActivity implements
     int ctrls_count =0;
     int ctrls_processed=0;
 
-    String saved_user,saved_pass;
-    String session_user,session_pass;
+    String saved_user,saved_pass,saved_hostname;
+    String session_user,session_pass,session_hostname;
 
     TextView proc;
 
@@ -71,14 +72,13 @@ public class WelcomeActivity extends AppCompatActivity implements
         }
 
 
-
-        cleaning_db();
         proc = (TextView) findViewById(R.id.welcome_tv_proc);
         proc.setText("");
 
         sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES,MODE_PRIVATE);
         saved_user = sPref.getString("user", "");
         saved_pass = sPref.getString("pass", "");
+        saved_hostname = sPref.getString("hostname", "");
 
 
         /*if(!sPref.contains("RingTone"))sPref.edit().putString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))).apply();
@@ -86,7 +86,7 @@ public class WelcomeActivity extends AppCompatActivity implements
         if(!sPref.contains("NotifColor"))sPref.edit().putInt("NotifColor", -16711936).apply();*/
 
 
-        if(!saved_user.equals("") && !saved_pass.equals("")){
+        if(!saved_user.equals("") && !saved_pass.equals("") && !saved_hostname.equals("")){
             if(check_network()){
                 proc.setText(getString(R.string.auth));
                 new DataBroker.authentication(this).execute(saved_user, saved_pass);
@@ -114,7 +114,6 @@ public class WelcomeActivity extends AppCompatActivity implements
         //proc.setText("");
         if(!session_user.isEmpty() && !session_pass.isEmpty()){
             if(check_network()){
-                cleaning_db();
 
                 ctrls_count =0;
                 ctrls_processed=0;
@@ -135,11 +134,14 @@ public class WelcomeActivity extends AppCompatActivity implements
 
             final EditText edt_user = (EditText) dialogView.findViewById(R.id.edit_username);
             final EditText edt_pass = (EditText) dialogView.findViewById(R.id.edit_password);
+            final EditText edt_host = (EditText) dialogView.findViewById(R.id.edit_hostname);
             final CheckBox checkBox = (CheckBox) dialogView.findViewById(R.id.chkBoxLogin);
 
             if(!saved_user.equals(""))edt_user.setText(sPref.getString("user", ""));
             if(!saved_pass.equals(""))edt_pass.setText(sPref.getString("pass", ""));
-            if(!saved_user.equals("") && !saved_pass.equals(""))checkBox.setChecked(true);
+            if(!saved_hostname.equals(""))edt_host.setText(sPref.getString("hostname", GrowappConstants.DEFAULT_HOSTNAME));
+
+            if(!saved_user.equals("") && !saved_pass.equals("") && !saved_hostname.equals(""))checkBox.setChecked(true);
             else checkBox.setChecked(false);
 
             dialogBuilder.setTitle("Введите учетные данные");
@@ -148,17 +150,20 @@ public class WelcomeActivity extends AppCompatActivity implements
                 public void onClick(DialogInterface dialog, int whichButton) {
                     session_user = edt_user.getText().toString().trim();
                     session_pass = edt_pass.getText().toString().trim();
+                    session_hostname = edt_host.getText().toString().trim();
 
 
                     SharedPreferences.Editor ed = sPref.edit();
 
                     ed.putString("user", session_user);
+                    ed.putString("hostname", session_hostname);
 
                     if (checkBox.isChecked()) {
                         ed.putString("pass", session_pass);
 
                         saved_user=session_user;
                         saved_pass=session_pass;
+                        saved_hostname=session_hostname;
                     } else {
                         ed.remove("pass");
                         ed.remove("hash");
@@ -263,10 +268,7 @@ public class WelcomeActivity extends AppCompatActivity implements
     public void onAuthCompleteMethod(String s) {
         Log.d(LOG_TAG, "Callback, user hash: " + s);
         if(s!=null){
-            //pDialog.show();
-            //pDialog.setMessage("Аутенфикация: успех");
             proc.setText("Аутенфикация: успех");
-            //pDialog.setMessage(getString(R.string.d_ctrls));
 
             sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
             SharedPreferences.Editor ed = sPref.edit();
@@ -278,6 +280,7 @@ public class WelcomeActivity extends AppCompatActivity implements
         } else {
             session_user="";
             session_pass="";
+            session_hostname="";
             proc.setText("");
             Toast.makeText(this,getString(R.string.no_auth), Toast.LENGTH_SHORT).show();
 
@@ -289,6 +292,10 @@ public class WelcomeActivity extends AppCompatActivity implements
         if (s != null) {
             //pDialog.setMessage("Получения списка контроллеров");
             proc.setText("Cписок устройств: успех");
+
+            //Clean DB from orphaned devices
+            getContentResolver().delete(MyContentProvider.CTRLS_CONTENT_URI, null, null);
+
             try {
                 JSONObject json = new JSONObject(s);
                 int success;
@@ -323,10 +330,14 @@ public class WelcomeActivity extends AppCompatActivity implements
                         //Controllers controller = new Controllers(ctrl_id,ctrl_name,ctrl_an);
                         //db.createCtrl(controller);
 
+
                         ContentValues cv = new ContentValues();
                         cv.put(MyContentProvider.KEY_CTRL_ID, ctrl_id);
                         cv.put(MyContentProvider.KEY_CTRL_NAME, ctrl_name);
                         cv.put(MyContentProvider.KEY_CTRL_AN, ctrl_an);
+
+
+
                         Uri newUri = getContentResolver().insert(MyContentProvider.CTRLS_CONTENT_URI, cv);
                         Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
 
@@ -365,9 +376,15 @@ public class WelcomeActivity extends AppCompatActivity implements
         if(s!=null){
             ContentValues result= new JSONHandler().ParseJSONProfile(s);
             if(result.size()>0){
-                //pDialog.setMessage("Получение настроек: успех");
-                Uri newUri = getContentResolver().insert(MyContentProvider.PREF_CONTENT_URI, result);
-                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+                String ctrl_id = result.getAsString("ctrl_id");
+                Uri newUri = ContentUris.withAppendedId(MyContentProvider.PREF_CONTENT_URI, Long.parseLong(ctrl_id));
+                int cnt = getContentResolver().update(newUri, result, null, null);
+                Log.d(LOG_TAG, "Cnt updated: " + cnt);
+
+                if (cnt == 0) {
+                    newUri = getContentResolver().insert(MyContentProvider.PREF_CONTENT_URI, result);
+                    Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+                }
 
                 proc.setText("Настройка пользователя: успех");
 
@@ -384,8 +401,17 @@ public class WelcomeActivity extends AppCompatActivity implements
             if(result.size()>0){
 
                 proc.setText("Профиль устройства: успех");
-                Uri newUri = getContentResolver().insert(MyContentProvider.DEV_PROFILE_CONTENT_URI, result);
-                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
+
+
+                String ctrl_id = result.getAsString("ctrl_id");
+                Uri newUri = ContentUris.withAppendedId(MyContentProvider.DEV_PROFILE_CONTENT_URI, Long.parseLong(ctrl_id));
+                int cnt = getContentResolver().update(newUri, result, null, null);
+                Log.d(LOG_TAG, "Cnt updated: " + cnt);
+                if(cnt==0){
+                    newUri = getContentResolver().insert(MyContentProvider.DEV_PROFILE_CONTENT_URI, result);
+                    Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+                }
 
 
             }
@@ -400,8 +426,18 @@ public class WelcomeActivity extends AppCompatActivity implements
             if(result!=null){
 
                 proc.setText("Данные датчиков: успех");
-                Uri newUri = getContentResolver().insert(MyContentProvider.MAIN_CONTENT_URI, result);
-                Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+
+
+                String ctrl_id = result.getAsString("ctrl_id");
+                Uri newUri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(ctrl_id));
+                int cnt = getContentResolver().update(newUri, result, null, null);
+                Log.d(LOG_TAG, "Cnt updated: " + cnt);
+
+                if(cnt==0){
+                    newUri = getContentResolver().insert(MyContentProvider.MAIN_CONTENT_URI, result);
+                    Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
+                }
+
 
             }
         }
@@ -424,7 +460,7 @@ public class WelcomeActivity extends AppCompatActivity implements
                 Toast.makeText(this, "Регистрация завершена успешна", Toast.LENGTH_SHORT).show();
 
                 //Очищаем БД
-                cleaning_db();
+                truncate_db();
 
                 //Если успешно создан аккаунт, то
                 //Если контроллеров не нашли, переходим в аккаунт инфо, чтоб добавить контроллеры
@@ -441,7 +477,7 @@ public class WelcomeActivity extends AppCompatActivity implements
     }
 
 
-    public void cleaning_db(){
+    public void truncate_db(){
         //Clearing database
         int delRows = getContentResolver().delete(MyContentProvider.CTRLS_CONTENT_URI, null, null);
         Log.d(LOG_TAG, "Controllers deleted: " + delRows);
@@ -452,7 +488,5 @@ public class WelcomeActivity extends AppCompatActivity implements
         delRows = getContentResolver().delete(MyContentProvider.MAIN_CONTENT_URI, null, null);
         Log.d(LOG_TAG, "Main deleted: " + delRows);
     }
-
-
 
 }

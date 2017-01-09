@@ -41,6 +41,7 @@ import java.util.List;
 import cc.growapp.growapp.DataBroker;
 import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.database.MyContentProvider;
+import cc.growapp.growapp.fragments.Frag_co2;
 import cc.growapp.growapp.fragments.Frag_hum;
 import cc.growapp.growapp.fragments.Frag_light_off;
 import cc.growapp.growapp.fragments.Frag_light_on;
@@ -51,7 +52,6 @@ import cc.growapp.growapp.fragments.Frag_wcan1_off;
 import cc.growapp.growapp.fragments.Frag_wcan1_on;
 import cc.growapp.growapp.fragments.Frag_wcan2_off;
 import cc.growapp.growapp.fragments.Frag_wcan2_on;
-import cc.growapp.growapp.JSONHandler;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.services.BackgroundService;
 
@@ -121,8 +121,8 @@ public class MainActivity extends AppCompatActivity implements
     float x2=0;
     float y2=0;
 
-    boolean pump1_state=false;
-    boolean pump2_state=false;
+    boolean pump1_active = false;
+    boolean pump2_active = false;
 
     long last_refresh_time;
 
@@ -138,11 +138,10 @@ public class MainActivity extends AppCompatActivity implements
 
         MainObserver MainObserver = new MainObserver(new Handler());
         getContentResolver().registerContentObserver(MyContentProvider.MAIN_CONTENT_URI, true, MainObserver);
-
-
-
-
         setContentView(R.layout.activity_main);
+
+
+
         RelativeLayout rl = (RelativeLayout) findViewById(R.id.main_activity_layout);
 
         wcan1 = (FrameLayout) findViewById(R.id.frgm_wcan1);
@@ -325,37 +324,6 @@ public class MainActivity extends AppCompatActivity implements
 
     private void launch_set_action(String action) {
         actionField.setText(action);
-        //if(!action.equals("3"))call_to_refresh();
-        //launch_set_action("3");
-
-        Intent intent = new Intent(this, BackgroundService.class);
-        intent.putExtra("controller_id",controller_id);
-        intent.putExtra("emergency_call", true);
-        startService(intent);
-
-
-
-        //new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
-
-        //new ActionHandler(getApplicationContext(),statusField, reciviedField).execute(user_hash,controller_id, "3"); //Сигнал Arduino на сбор данных
-        last_refresh_time=System.currentTimeMillis();
-
-
-        //Запишем в локльную БД, состояние измененых реле, насосов, чтоб после обновления экрана
-        //изменения отобразились на экране
-/*TODO Content Provider
-        SystemState state = db.getSystemState(controller_id);
-        switch (action){
-            case "10":state.set_relay1_state(1);break;
-            case "11":state.set_relay1_state(0);break;
-            case "20":state.set_relay2_state(1);break;
-            case "21":state.set_relay2_state(0);break;
-            case "30":state.set_pump1_state(0);break;
-            case "31":state.set_pump1_state(1);break;
-            case "40":state.set_pump2_state(0);break;
-            case "41":state.set_pump2_state(1);break;
-        }*/
-
 
         new DataBroker.set_action(this).execute(controller_id, hash, action);
     }
@@ -430,8 +398,8 @@ public class MainActivity extends AppCompatActivity implements
 
     public void populateFragments(){
 
-        TextView water_level_label = (TextView) findViewById(R.id.textView14);
-        TextView water_level = (TextView) findViewById(R.id.tv_wl_data);
+        //TextView water_level_label = (TextView) findViewById(R.id.textView14);
+        //TextView water_level = (TextView) findViewById(R.id.tv_wl_data);
 
         TextView date = (TextView) findViewById(R.id.tv_date);
         Switch relay1 = (Switch) findViewById(R.id.tbtn_sw1);
@@ -442,6 +410,7 @@ public class MainActivity extends AppCompatActivity implements
         FrameLayout h = (FrameLayout) findViewById(R.id.frgm_hum);
         FrameLayout pot1 = (FrameLayout) findViewById(R.id.frgm_pot1);
         FrameLayout pot2 = (FrameLayout) findViewById(R.id.frgm_pot2);
+        FrameLayout co2 = (FrameLayout) findViewById(R.id.frgm_co2);
 
 
 
@@ -452,17 +421,19 @@ public class MainActivity extends AppCompatActivity implements
         h.setVisibility(View.VISIBLE);
         pot1.setVisibility(View.VISIBLE);
         pot2.setVisibility(View.VISIBLE);
-
+        co2.setVisibility(View.VISIBLE);
         relay1.setVisibility(View.VISIBLE);
         relay2.setVisibility(View.VISIBLE);
-        water_level.setVisibility(View.VISIBLE);
-        water_level_label.setVisibility(View.VISIBLE);
+
+        //water_level.setVisibility(View.VISIBLE);
+        //water_level_label.setVisibility(View.VISIBLE);
 
         //Инициализация фрагментов в Активити
         Frag_temp frag_temp;
         Frag_hum frag_hum;
         Frag_pot1 frag_pot1;
         Frag_pot2 frag_pot2;
+        Frag_co2 frag_co2;
 
         Frag_light_on frag_light_on;
         Frag_light_off frag_light_off;
@@ -471,6 +442,7 @@ public class MainActivity extends AppCompatActivity implements
         frag_hum = new Frag_hum();
         frag_pot1 = new Frag_pot1();
         frag_pot2 = new Frag_pot2();
+        frag_co2 = new Frag_co2();
 
         frag_light_on = new Frag_light_on();
         frag_light_off = new Frag_light_off();
@@ -531,8 +503,10 @@ public class MainActivity extends AppCompatActivity implements
         // ---------------------- Работаем с фрагментом "T and H" --------------------------
         String frag_temp_tag = "frag_temp";
         String frag_hum_tag = "frag_hum";
+        String frag_co2_tag = "frag_co2";
         Frag_temp f_temp = (Frag_temp) getFragmentManager().findFragmentByTag(frag_temp_tag);
         Frag_hum f_hum = (Frag_hum) getFragmentManager().findFragmentByTag(frag_hum_tag);
+        Frag_co2 f_co2 = (Frag_co2) getFragmentManager().findFragmentByTag(frag_co2_tag);
 
 
         Log.d(LOG_TAG, "Температура получена = " + t_result + "`C");
@@ -550,6 +524,14 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d(LOG_TAG_FRAG, "Фрагмент HUM добавлен");
             }
         } else h.setVisibility(View.INVISIBLE);
+
+        Log.d(LOG_TAG, "Уровень воды = " + w_result + "%");
+        if(water_control==1){
+            if( f_co2 == null){
+                fTrans.add(R.id.frgm_co2, frag_co2, frag_co2_tag);
+                Log.d(LOG_TAG_FRAG, "Фрагмент CO2 добавлен");
+            }
+        } else co2.setVisibility(View.INVISIBLE);
         // ---------------------------------------------------------------------------------
         // ---------------------- Работаем с фрагментом "Горшки" ---------------------------
         String frag_pot1_tag = "frag_pot1";
@@ -581,17 +563,17 @@ public class MainActivity extends AppCompatActivity implements
 
         // ---------------------- Работаем с фрагментами "Лейка" ---------------------------
         if(p1_result==1) {
-            pump1_state = true;
+            pump1_active = true;
             add_wcan1_fragment(true);
         } else {
-            pump1_state = false;
+            pump1_active = false;
             add_wcan1_fragment(false);
         }
         if(p2_result==1) {
-            pump2_state = true;
+            pump2_active = true;
             add_wcan2_fragment(true);
         } else {
-            pump2_state = false;
+            pump2_active = false;
             add_wcan2_fragment(false);
         }
         // ---------------------------------------------------------------------------------
@@ -600,25 +582,27 @@ public class MainActivity extends AppCompatActivity implements
         if(getFragmentManager().executePendingTransactions()){
             f_temp = (Frag_temp) getFragmentManager().findFragmentByTag(frag_temp_tag);
             f_hum = (Frag_hum) getFragmentManager().findFragmentByTag(frag_hum_tag);
+            f_co2 = (Frag_co2) getFragmentManager().findFragmentByTag(frag_co2_tag);
             f_pot1 = (Frag_pot1) getFragmentManager().findFragmentByTag(frag_pot1_tag);
             f_pot2 = (Frag_pot2) getFragmentManager().findFragmentByTag(frag_pot2_tag);
 
             //Если да, заполним их данными
             if(f_temp!=null)f_temp.setText(t_result+"'C");
             if(f_hum!=null)f_hum.setText(h_result+"%");
+            if(f_co2!=null)f_co2.setText(w_result+"%");
             if(f_pot1!=null)f_pot1.setText(pot1_h_result+"%");
             if(f_pot2!=null)f_pot2.setText(pot2_h_result+"%");
         }
 
 
-        Log.d(LOG_TAG, "Уровень воды = " + w_result + "%");
-        if(water_control==1){
+
+        /*if(water_control==1){
             String w_result_string = String.valueOf(w_result)+"%";
             water_level.setText(w_result_string);
         } else{
             water_level.setVisibility(View.INVISIBLE);
             water_level_label.setVisibility(View.INVISIBLE);
-        }
+        }*/
 
 
         prog_toggle=true;
@@ -660,7 +644,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d(LOG_TAG, String.valueOf(Math.abs(y2 - y1)));
                 if(Math.abs(y2 - y1)>=400) {
                     //Если прошло больше 10 секунд, с последнего изменения интерфейса, то разрешим обновится (см. call_to_refresh)
-                    if(System.currentTimeMillis()-last_refresh_time> GrowappConstants.get_data_timeout){
+                    if(System.currentTimeMillis()-last_refresh_time> GrowappConstants.short_period){
 
                         Toast.makeText(this,getString(R.string.loadingsystemstate),Toast.LENGTH_SHORT).show();
 
@@ -726,16 +710,16 @@ public class MainActivity extends AppCompatActivity implements
     }
     // ---------------------------------------------------------------------------------------------
     public void pump1_control(){
-        //Log.d(LOG_TAG, "PUMP 1 State: "+ String.valueOf(pump1_state));
+        //Log.d(LOG_TAG, "PUMP 1 State: "+ String.valueOf(pump1_active));
         if (controller_id!=null && !controller_id.isEmpty()) {
-            if (!pump1_state) {
-                pump1_state=true;
+            if (!pump1_active) {
+                pump1_active =true;
                 Log.d(LOG_TAG, "PUMP 1 On");
                 add_wcan1_fragment(true);
                 launch_set_action("31");
                 //new ActionHandler(getApplicationContext(), statusField, reciviedField).execute(user_hash, controller_id, "31"); //Сигнал Arduino на насос 1 включить
             } else {
-                pump1_state=false;
+                pump1_active =false;
                 add_wcan1_fragment(false);
                 Log.d(LOG_TAG, "PUMP 1 Off");
                 launch_set_action("30");
@@ -747,16 +731,16 @@ public class MainActivity extends AppCompatActivity implements
     // ---------------------------------------------------------------------------------------------
     // ---------------------------------------------------------------------------------------------
     public void pump2_control(){
-        //Log.d(LOG_TAG, "PUMP 2 State: "+ String.valueOf(pump1_state));
+        //Log.d(LOG_TAG, "PUMP 2 State: "+ String.valueOf(pump1_active));
         if (controller_id!=null && !controller_id.isEmpty()) {
-            if (!pump2_state) {
-                pump2_state=true;
+            if (!pump2_active) {
+                pump2_active =true;
                 Log.d(LOG_TAG, "PUMP 2 On");
                 add_wcan2_fragment(true);
                 launch_set_action("41");
                 //new ActionHandler(getApplicationContext(), statusField, reciviedField).execute(user_hash, controller_id, "41"); //Сигнал Arduino на насос 2 включить
             } else {
-                pump2_state=false;
+                pump2_active =false;
                 add_wcan2_fragment(false);
                 Log.d(LOG_TAG, "PUMP 2 Off");
                 launch_set_action("40");
@@ -986,18 +970,19 @@ public class MainActivity extends AppCompatActivity implements
 
         Cursor cursor_main = getContentResolver().query(Uri.parse(MyContentProvider.MAIN_CONTENT_URI+"/"+ctrl_id),null, null, null, null);
         if(cursor_main!=null){
-            cursor_main.moveToFirst();
-            l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
-            t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
-            h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
-            pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
-            pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
-            p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
-            p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
-            relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
-            relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
-            w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
-            date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
+            if(cursor_main.moveToFirst()){
+                l_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_LIGHT_STATE));
+                t_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_T));
+                h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_H));
+                pot1_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT1_H));
+                pot2_h_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_POT2_H));
+                p1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP1_STATE));
+                p2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_PUMP2_STATE));
+                relay1_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY1_STATE));
+                relay2_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_RELAY2_STATE));
+                w_result=cursor_main.getInt(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_WATER_LEVEL));
+                date_result=cursor_main.getString(cursor_main.getColumnIndexOrThrow(MyContentProvider.KEY_MAIN_DATE));
+            }
             cursor_main.close();
         }
 
@@ -1041,39 +1026,15 @@ public class MainActivity extends AppCompatActivity implements
             Log.d(LOG_TAG, "Callback, action: " + s);
             answerField.setText(s);
 
+
+            Intent intent = new Intent(this, BackgroundService.class);
+            intent.putExtra("controller_id",controller_id);
+            intent.putExtra("emergency_call", true);
+            startService(intent);
+            last_refresh_time=System.currentTimeMillis();
+
         }
     }
-/*
-    @Override
-
-    public void onGetSystemStateCompleteMethod(String s) {
-        Log.d(LOG_TAG, "Callback, system state: " + s);
-        if(s!=null){
-            ContentValues result= new JSONHandler().ParseJSONSystemState(s);
-            if(result!=null){
-                Toast.makeText(this,R.string.get_data, Toast.LENGTH_SHORT).show();
-                get_main_data(controller_id);
-
-                //pDialog.setMessage("Получение данных датчиков: успех");
-                //Uri newUri = getContentResolver().update(MyContentProvider.MAIN_CONTENT_URI, result);
-                //Log.d(LOG_TAG, "URI to dispatch: " + (newUri != null ? newUri.toString() : null));
-
-                Uri uri = ContentUris.withAppendedId(MyContentProvider.MAIN_CONTENT_URI, Long.parseLong(controller_id));
-                int cnt = getContentResolver().update(uri, result, null, null);
-                Log.d(LOG_TAG, "Number of device updated: " + cnt);
-
-                //get_main_data(controller_id);
-                //populateFragments(controller_id);
-            } else {
-                pDialog.dismiss();
-                //Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            // Toast.makeText(this,R.string.no_data, Toast.LENGTH_SHORT).show();
-        }
-        pDialog.dismiss();
-    }
-*/
 
 }
 

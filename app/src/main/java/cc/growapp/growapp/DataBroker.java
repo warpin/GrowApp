@@ -1,24 +1,8 @@
 package cc.growapp.growapp;
 
 
-import android.app.Activity;
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
-import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.AdapterView;
-import android.widget.TextView;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,20 +11,28 @@ import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.SynchronousQueue;
 
 
 public class DataBroker  {
 
     static String LOG_TAG="DataBroker";
 
+    public static final String HOSTNAME = "http://growapp.e-nk.ru";
+    public static final String LOGIN_URI = HOSTNAME+"/core/login.php";
+    public static final String REGISTRATION_URI = HOSTNAME+"/core/registration.php";
+    public static final String ACTIVATE_DEV_URI = HOSTNAME+"/core/get_data/activate_dev.php";
+
+    public static final String GET_CTRLS_URI = HOSTNAME+"/core/get_data/get_ctrl_list.php";
+    public static final String GET_DEV_PROFILE_URI = HOSTNAME+"/core/get_data/get_dev_profile.php";
+    public static final String GET_PREF_URI = HOSTNAME+"/core/get_data/get_pref_profile.php";
+    public static final String GET_SYSTEM_STATE_URI = HOSTNAME+"/core/get_data/get_system_state.php";
+    public static final String GET_GRAPHS_DATA_URI = HOSTNAME+"/core/get_data/get_graphs_data.php";
+    public static final String ADD_TASK_URI = HOSTNAME+"/core/add_data/add_task.php";
+    public static final String SAVE_PREF_URI = HOSTNAME+"/core/add_data/save_profile.php";
+    public static final String UPDATE_CTRL_NAME_URI = HOSTNAME+"/core/add_data/edit_ctrl_name.php";
+    
     // -------------------------- Аутенфикация пользователя и получения хеша -----------------------
     public static class authentication extends AsyncTask<String,Void,String> {
         static Map<String,Object> params = new HashMap<>();
@@ -60,7 +52,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/login.php";
+                String url=LOGIN_URI;
                 params.put("username", post_params[0]);
                 params.put("password", post_params[1]);
                 return downloadUrl(url,params);
@@ -102,7 +94,7 @@ public class DataBroker  {
 
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/get_data/get_ctrl_list.php";
+                String url=GET_CTRLS_URI;
                 params.put("username", post_params[0]);
                 params.put("hash", post_params[1]);
                 return downloadUrl(url,params);
@@ -140,7 +132,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/get_data/get_pref_profile.php";
+                String url=GET_PREF_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 return downloadUrl(url,params);
@@ -175,7 +167,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/get_data/get_dev_profile.php";
+                String url=GET_DEV_PROFILE_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 return downloadUrl(url,params);
@@ -211,7 +203,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/get_data/get_system_state.php";
+                String url=GET_SYSTEM_STATE_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 return downloadUrl(url,params);
@@ -248,7 +240,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/get_data/get_graphs_data.php";
+                String url=GET_GRAPHS_DATA_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 params.put("param", post_params[2]);
@@ -287,7 +279,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/add_data/add_task.php";
+                String url=ADD_TASK_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 params.put("action_id", post_params[2]);
@@ -312,7 +304,6 @@ public class DataBroker  {
         static Map<String,Object> params = new HashMap<>();
 
 
-
         public interface onSaveUserProfileComplete {
             void onSaveUserProfileCompleteMethod(String s);
         }
@@ -327,7 +318,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/add_data/save_profile.php";
+                String url=SAVE_PREF_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 params.put("t_max", post_params[2]);
@@ -350,9 +341,9 @@ public class DataBroker  {
                 params.put("relays_notify", post_params[19]);
                 params.put("pumps_notify", post_params[20]);
                 params.put("period", post_params[21]);
-                params.put("sound", post_params[22]);
-                params.put("vibrate", post_params[23]);
-                params.put("color", post_params[24]);
+                params.put("vibrate", post_params[22]);
+                params.put("color", post_params[23]);
+                //params.put("sound", post_params[24]);
 
                 return downloadUrl(url,params);
             } catch (IOException e) {
@@ -383,7 +374,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/add_data/edit_ctrl_name.php";
+                String url=UPDATE_CTRL_NAME_URI;
                 params.put("ctrl_id", post_params[0]);
                 params.put("hash", post_params[1]);
                 params.put("ctrl_name", post_params[2]);
@@ -420,7 +411,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/registration.php";
+                String url=REGISTRATION_URI;
                 params.put("username", post_params[0]);
                 params.put("email", post_params[1]);
                 params.put("password", post_params[2]);
@@ -457,7 +448,7 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url="http://growapp.e-nk.ru/core/get_data/activate_dev.php";
+                String url=ACTIVATE_DEV_URI;
                 params.put("username", post_params[0]);
                 params.put("hash", post_params[1]);
                 params.put("ctrl_id", post_params[2]);

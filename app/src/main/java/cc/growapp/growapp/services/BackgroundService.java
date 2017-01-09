@@ -11,25 +11,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
-import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
-import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-
-import java.util.Calendar;
 import java.util.Date;
-import java.util.Objects;
 
 import cc.growapp.growapp.DataBroker;
 import cc.growapp.growapp.GrowappConstants;
@@ -120,8 +111,8 @@ public class BackgroundService extends IntentService implements
                     if(cursor_pref!=null) {
                         if(cursor_pref.moveToFirst()){
                             period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
-                            if(emergency_call && emergency_ctrl_id.equals(controller_id))period=GrowappConstants.get_data_timeout;
                             period_in_ms=period*1000;
+                            if(emergency_call && emergency_ctrl_id.equals(controller_id))period_in_ms=GrowappConstants.short_period *1000;
                         }
                         cursor_pref.close();
                     }
@@ -140,6 +131,7 @@ public class BackgroundService extends IntentService implements
                     Log.d(LOG_TAG, "Difference: "+ diffrence + " Period in ms: "+ period_in_ms);
 
                     //period*1000
+
                     if(start_time==0 || diffrence==0 || Math.abs(diffrence)>=period_in_ms || start_time<current_time){
 
                         //Обрабатываем контроллер
@@ -163,7 +155,10 @@ public class BackgroundService extends IntentService implements
                         String hash = sPref.getString("hash", "");
 
                         Toast.makeText(this, controller_id, Toast.LENGTH_SHORT).show();
-                        new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
+                        if(!(emergency_call && emergency_ctrl_id.equals(controller_id))){
+                            new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
+                        }
+
 
                     } else Log.d(LOG_TAG, "Skipping the device: "+ controller_id);
                     //2 Но если есть старт тайм меньше или равно 0 или прошлого минимального

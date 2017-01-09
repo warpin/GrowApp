@@ -106,7 +106,7 @@ public class PreferencesActivity extends AppCompatActivity implements
                     String all_notify_value= (cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY)));
 
                     String period = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
-                    String sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
+                    //String sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
                     String vibrator_type = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VIBRATE));
                     String color = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_COLOR));
 
@@ -125,7 +125,7 @@ public class PreferencesActivity extends AppCompatActivity implements
                             t_notify_value, h_notify_value,
                             pot1_notify_value, pot2_notify_value,
                             wl_notify_value, l_notify_value,
-                            relays_notify_value, pumps_notify_value, period, sound, vibrator_type, color);
+                            relays_notify_value, pumps_notify_value, period, vibrator_type, color);
 
 
                     Toast.makeText(this, R.string.save, Toast.LENGTH_SHORT).show();
@@ -136,13 +136,6 @@ public class PreferencesActivity extends AppCompatActivity implements
             }
 
         }
-
-
-
-
-       
-
-
 
     }
 

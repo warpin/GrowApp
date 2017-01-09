@@ -522,10 +522,21 @@ public class MyContentProvider extends ContentProvider {
             case URI_CTRLS_ID:
                 id = uri.getLastPathSegment();
                 Log.d(LOG_TAG, "UPDATE URI_CTRLS_ID, " + id);
-                //if (TextUtils.isEmpty(selection))selection = KEY_CTRL_ID + " = " + id;
-                //else selection = selection + " AND " + KEY_CTRL_ID + " = " + id;
+                if (TextUtils.isEmpty(selection))selection = KEY_CTRL_ID + " = " + id;
+                else selection = selection + " AND " + KEY_CTRL_ID + " = " + id;
                 if (!id.isEmpty())selection = KEY_CTRL_ID + " = " + id;
                 cnt = db.update(TABLE_CTRLS, values, selection, selectionArgs);
+                break;
+            case URI_DEV_PROFILE:
+                Log.d(LOG_TAG, "UPDATE URI_DEV_PROFILE");
+
+                break;
+            case URI_DEV_PROFILE_ID:
+                id = uri.getLastPathSegment();
+                Log.d(LOG_TAG, "UPDATE URI_DEV_PROFILE_ID, " + id);
+                if (TextUtils.isEmpty(selection))selection = KEY_DEV_CTRL_ID + " = " + id;
+                else selection = selection + " AND " + KEY_DEV_CTRL_ID + " = " + id;
+                cnt = db.update(TABLE_DEV_PROFILE, values, selection, selectionArgs);
                 break;
             case URI_PREF:
                 Log.d(LOG_TAG, "UPDATE URI_PREF");
@@ -565,8 +576,7 @@ public class MyContentProvider extends ContentProvider {
                 throw new IllegalArgumentException("Wrong URI: " + uri);
         }
         
-        
-        
+
         getContext().getContentResolver().notifyChange(uri, null);
         return cnt;
     }
