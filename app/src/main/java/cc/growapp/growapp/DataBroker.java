@@ -20,18 +20,18 @@ public class DataBroker  {
     static String LOG_TAG="DataBroker";
 
     public static final String HOSTNAME = "http://growapp.e-nk.ru";
-    public static final String LOGIN_URI = HOSTNAME+"/core/login.php";
-    public static final String REGISTRATION_URI = HOSTNAME+"/core/registration.php";
-    public static final String ACTIVATE_DEV_URI = HOSTNAME+"/core/get_data/activate_dev.php";
+    //public static final String LOGIN_URI = HOSTNAME+"/core/login.php";
+    //public static final String REGISTRATION_URI = "http://"+post_params[0]+"/core/registration.php";
+    //public static final String ACTIVATE_DEV_URI = "http://"+post_params[0]+"/core/get_data/activate_dev.php";
 
-    public static final String GET_CTRLS_URI = HOSTNAME+"/core/get_data/get_ctrl_list.php";
-    public static final String GET_DEV_PROFILE_URI = HOSTNAME+"/core/get_data/get_dev_profile.php";
-    public static final String GET_PREF_URI = HOSTNAME+"/core/get_data/get_pref_profile.php";
-    public static final String GET_SYSTEM_STATE_URI = HOSTNAME+"/core/get_data/get_system_state.php";
-    public static final String GET_GRAPHS_DATA_URI = HOSTNAME+"/core/get_data/get_graphs_data.php";
-    public static final String ADD_TASK_URI = HOSTNAME+"/core/add_data/add_task.php";
-    public static final String SAVE_PREF_URI = HOSTNAME+"/core/add_data/save_profile.php";
-    public static final String UPDATE_CTRL_NAME_URI = HOSTNAME+"/core/add_data/edit_ctrl_name.php";
+    //public static final String GET_CTRLS_URI = "http://"+post_params[0]+"/core/get_data/get_ctrl_list.php";
+    //public static final String GET_DEV_PROFILE_URI = "http://"+post_params[0]+"/core/get_data/get_dev_profile.php";
+    //public static final String GET_PREF_URI = "http://"+post_params[0]+"/core/get_data/get_pref_profile.php";
+    //public static final String GET_SYSTEM_STATE_URI = "http://"+post_params[0]+"/core/get_data/get_system_state.php";
+    //public static final String GET_GRAPHS_DATA_URI = "http://"+post_params[0]+"/core/get_data/get_graphs_data.php";
+    //public static final String ADD_TASK_URI = "http://"+post_params[0]+"/core/add_data/add_task.php";
+    //public static final String SAVE_PREF_URI = "http://"+post_params[0]+"/core/add_data/save_profile.php";
+    //public static final String UPDATE_CTRL_NAME_URI = "http://"+post_params[0]+"/core/add_data/edit_ctrl_name.php";
     
     // -------------------------- Аутенфикация пользователя и получения хеша -----------------------
     public static class authentication extends AsyncTask<String,Void,String> {
@@ -52,9 +52,9 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=LOGIN_URI;
-                params.put("username", post_params[0]);
-                params.put("password", post_params[1]);
+                String url= "http://"+post_params[0]+"/core/login.php";
+                params.put("username", post_params[1]);
+                params.put("password", post_params[2]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return "Unable to retrieve web page. URL may be invalid.";
@@ -94,9 +94,9 @@ public class DataBroker  {
 
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=GET_CTRLS_URI;
-                params.put("username", post_params[0]);
-                params.put("hash", post_params[1]);
+                String url="http://"+post_params[0]+"/core/get_data/get_ctrl_list.php";
+                params.put("username", post_params[1]);
+                params.put("hash", post_params[2]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return null;
@@ -132,9 +132,9 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=GET_PREF_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
+                String url="http://"+post_params[0]+"/core/get_data/get_pref_profile.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return null;
@@ -167,9 +167,9 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=GET_DEV_PROFILE_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
+                String url="http://"+post_params[0]+"/core/get_data/get_dev_profile.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return null;
@@ -203,9 +203,9 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=GET_SYSTEM_STATE_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
+                String url="http://"+post_params[0]+"/core/get_data/get_system_state.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return null;
@@ -240,11 +240,11 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=GET_GRAPHS_DATA_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
-                params.put("param", post_params[2]);
-                params.put("period", post_params[3]);
+                String url="http://"+post_params[0]+"/core/get_data/get_graphs_data.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
+                params.put("param", post_params[3]);
+                params.put("period", post_params[4]);
 
                 return downloadUrl(url,params);
             } catch (IOException e) {
@@ -279,10 +279,10 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=ADD_TASK_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
-                params.put("action_id", post_params[2]);
+                String url="http://"+post_params[0]+"/core/add_data/add_task.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
+                params.put("action_id", post_params[3]);
 
                 return downloadUrl(url,params);
             } catch (IOException e) {
@@ -318,31 +318,31 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=SAVE_PREF_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
-                params.put("t_max", post_params[2]);
-                params.put("t_min", post_params[3]);
-                params.put("h_max", post_params[4]);
-                params.put("h_min", post_params[5]);
-                params.put("pot1_h_max", post_params[6]);
-                params.put("pot1_h_min", post_params[7]);
-                params.put("pot2_h_max", post_params[8]);
-                params.put("pot2_h_min", post_params[9]);
-                params.put("wl_max", post_params[10]);
-                params.put("wl_min", post_params[11]);
-                params.put("all_notify", post_params[12]);
-                params.put("t_notify", post_params[13]);
-                params.put("h_notify", post_params[14]);
-                params.put("pot1_notify", post_params[15]);
-                params.put("pot2_notify", post_params[16]);
-                params.put("wl_notify", post_params[17]);
-                params.put("l_notify", post_params[18]);
-                params.put("relays_notify", post_params[19]);
-                params.put("pumps_notify", post_params[20]);
-                params.put("period", post_params[21]);
-                params.put("vibrate", post_params[22]);
-                params.put("color", post_params[23]);
+                String url="http://"+post_params[0]+"/core/add_data/save_profile.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
+                params.put("t_max", post_params[3]);
+                params.put("t_min", post_params[4]);
+                params.put("h_max", post_params[5]);
+                params.put("h_min", post_params[6]);
+                params.put("pot1_h_max", post_params[7]);
+                params.put("pot1_h_min", post_params[8]);
+                params.put("pot2_h_max", post_params[9]);
+                params.put("pot2_h_min", post_params[10]);
+                params.put("wl_max", post_params[11]);
+                params.put("wl_min", post_params[12]);
+                params.put("all_notify", post_params[13]);
+                params.put("t_notify", post_params[14]);
+                params.put("h_notify", post_params[15]);
+                params.put("pot1_notify", post_params[16]);
+                params.put("pot2_notify", post_params[17]);
+                params.put("wl_notify", post_params[18]);
+                params.put("l_notify", post_params[19]);
+                params.put("relays_notify", post_params[20]);
+                params.put("pumps_notify", post_params[21]);
+                params.put("period", post_params[22]);
+                params.put("vibrate", post_params[23]);
+                params.put("color", post_params[24]);
                 //params.put("sound", post_params[24]);
 
                 return downloadUrl(url,params);
@@ -374,10 +374,10 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=UPDATE_CTRL_NAME_URI;
-                params.put("ctrl_id", post_params[0]);
-                params.put("hash", post_params[1]);
-                params.put("ctrl_name", post_params[2]);
+                String url="http://"+post_params[0]+"/core/add_data/edit_ctrl_name.php";
+                params.put("ctrl_id", post_params[1]);
+                params.put("hash", post_params[2]);
+                params.put("ctrl_name", post_params[3]);
 
                 return downloadUrl(url,params);
             } catch (IOException e) {
@@ -411,10 +411,10 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=REGISTRATION_URI;
-                params.put("username", post_params[0]);
-                params.put("email", post_params[1]);
-                params.put("password", post_params[2]);
+                String url="http://"+post_params[0]+"/core/registration.php";
+                params.put("username", post_params[1]);
+                params.put("email", post_params[2]);
+                params.put("password", post_params[3]);
 
                 return downloadUrl(url,params);
             } catch (IOException e) {
@@ -448,12 +448,12 @@ public class DataBroker  {
         protected String doInBackground(String... post_params) {
             // params comes from the execute() call: params[0] is the url.
             try {
-                String url=ACTIVATE_DEV_URI;
-                params.put("username", post_params[0]);
-                params.put("hash", post_params[1]);
-                params.put("ctrl_id", post_params[2]);
-                params.put("ctrl_name", post_params[3]);
-                params.put("ctrl_an", post_params[4]);
+                String url="http://"+post_params[0]+"/core/get_data/activate_dev.php";
+                params.put("username", post_params[1]);
+                params.put("hash", post_params[2]);
+                params.put("ctrl_id", post_params[3]);
+                params.put("ctrl_name", post_params[4]);
+                params.put("ctrl_an", post_params[5]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return null;

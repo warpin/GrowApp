@@ -65,7 +65,7 @@ public class JSONHandler
                 String vibrate = profile.getString("vibrate");
                 int color = Integer.parseInt(profile.getString("color"));
 
-                Uri default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                //Uri default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
                 if(period==0)period=900;
                 //if(sound.length()==0)sound=String.valueOf(default_sound_uri);

@@ -115,7 +115,9 @@ public class PreferencesActivity extends AppCompatActivity implements
                     Log.d(LOG_TAG, "version: " + new_version);
                     //Log.d(LOG_TAG, "Version: : " + version);
 
-                    new DataBroker.save_user_profile(this).execute(controller_id, hash,
+                    String saved_hostname = sPref.getString("hostname", GrowappConstants.DEFAULT_HOSTNAME);
+
+                    new DataBroker.save_user_profile(this).execute(saved_hostname,controller_id, hash,
                             t_max_value, t_min_value,
                             h_max_value, h_min_value,
                             pot1_h_max_value, pot1_h_min_value,

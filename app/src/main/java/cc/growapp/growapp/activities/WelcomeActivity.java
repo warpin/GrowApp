@@ -55,7 +55,6 @@ public class WelcomeActivity extends AppCompatActivity implements
 
     String saved_user,saved_pass,saved_hostname;
     String session_user,session_pass,session_hostname;
-
     TextView proc;
 
 
@@ -75,10 +74,10 @@ public class WelcomeActivity extends AppCompatActivity implements
         proc = (TextView) findViewById(R.id.welcome_tv_proc);
         proc.setText("");
 
-        sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES,MODE_PRIVATE);
+        sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
         saved_user = sPref.getString("user", "");
         saved_pass = sPref.getString("pass", "");
-        saved_hostname = sPref.getString("hostname", "");
+        saved_hostname = sPref.getString("hostname", GrowappConstants.DEFAULT_HOSTNAME);
 
 
         /*if(!sPref.contains("RingTone"))sPref.edit().putString("RingTone", String.valueOf(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))).apply();
@@ -89,7 +88,7 @@ public class WelcomeActivity extends AppCompatActivity implements
         if(!saved_user.equals("") && !saved_pass.equals("") && !saved_hostname.equals("")){
             if(check_network()){
                 proc.setText(getString(R.string.auth));
-                new DataBroker.authentication(this).execute(saved_user, saved_pass);
+                new DataBroker.authentication(this).execute(saved_hostname,saved_user, saved_pass);
             } else {
                 Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
             }
@@ -118,7 +117,7 @@ public class WelcomeActivity extends AppCompatActivity implements
                 ctrls_count =0;
                 ctrls_processed=0;
 
-                new DataBroker.authentication(this).execute(session_user, session_pass);
+                new DataBroker.authentication(this).execute(session_hostname, session_user, session_pass);
             } else {
                 Toast.makeText(this,"No network", Toast.LENGTH_SHORT).show();
             }
@@ -252,7 +251,7 @@ public class WelcomeActivity extends AppCompatActivity implements
                             else {
                                 if (pass1_data.equals(pass2_data)) {
                                     b.dismiss();
-                                    new DataBroker.registration(WelcomeActivity.this).execute(username_data, email_data, pass1_data);
+                                    new DataBroker.registration(WelcomeActivity.this).execute(saved_hostname,username_data, email_data, pass1_data);
                                 } else
                                     Toast.makeText(WelcomeActivity.this, "Пароли несовпадают", Toast.LENGTH_SHORT).show();
                             }
@@ -276,7 +275,7 @@ public class WelcomeActivity extends AppCompatActivity implements
             ed.apply();
             String saved_user = sPref.getString("user", "");
             hash = sPref.getString("hash", "");
-            new DataBroker.get_controllers(this).execute(saved_user, s);
+            new DataBroker.get_controllers(this).execute(saved_hostname,saved_user, s);
         } else {
             session_user="";
             session_pass="";
@@ -343,11 +342,11 @@ public class WelcomeActivity extends AppCompatActivity implements
 
 
                         //Запускаем процесс получения настроек пользователя
-                        new DataBroker.get_pref_profile(this).execute(ctrl_id, hash);
+                        new DataBroker.get_pref_profile(this).execute(saved_hostname,ctrl_id, hash);
                         //Запускаем процесс получения комплектации устройства
-                        new DataBroker.get_dev_profile(this).execute(ctrl_id, hash);
+                        new DataBroker.get_dev_profile(this).execute(saved_hostname,ctrl_id, hash);
                         //Запускаем процесс получения данных датчиков
-                        new DataBroker.get_system_state(this).execute(ctrl_id, hash);
+                        new DataBroker.get_system_state(this).execute(saved_hostname,ctrl_id, hash);
                     }
                     // Don't forget to close database connection
 

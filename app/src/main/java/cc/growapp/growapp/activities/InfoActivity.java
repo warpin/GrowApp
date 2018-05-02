@@ -1,10 +1,6 @@
 package cc.growapp.growapp.activities;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
@@ -18,7 +14,6 @@ import android.widget.TextView;
 
 import java.util.Date;
 
-import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.services.BackgroundService;
@@ -110,11 +105,6 @@ public class InfoActivity extends AppCompatActivity  {
 
     }
 
-    public void ServiceStart(View v){
-
-        startService(new Intent(this, BackgroundService.class));
-    }
-
     public void CrashApp(View v){
 
         throw new RuntimeException("App is crashed");
@@ -123,14 +113,12 @@ public class InfoActivity extends AppCompatActivity  {
     @Override
     protected void onStart() {
         super.onStart();
-        /*registerReceiver((receiver),
-                new IntentFilter(BackgroundService.ACTION)
-        );*/
+
     }
 
     @Override
     protected void onStop() {
-        //unregisterReceiver(receiver);
+
         super.onStop();
     }
 
@@ -147,8 +135,16 @@ public class InfoActivity extends AppCompatActivity  {
         }
     }
 
-    public class InfoObserver extends ContentObserver {
-        public InfoObserver(Handler handler) {
+    public void ServiceStart(View view) {
+
+        Log.d(LOG_TAG,"Starting BG_service.");
+        Intent intent = new Intent(this, BackgroundService.class);
+        startService(intent);
+    }
+
+
+    private class InfoObserver extends ContentObserver {
+        InfoObserver(Handler handler) {
             super(handler);
         }
 
@@ -168,6 +164,7 @@ public class InfoActivity extends AppCompatActivity  {
         }
 
     }
+
     void DataPut(){
         long ServiceStartAt=0;
         Cursor cursor_local = getContentResolver().query(Uri.parse(MyContentProvider.LOCAL_CONTENT_URI + "/" + controller_id), null, null, null, null);

@@ -25,13 +25,10 @@ import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import cc.growapp.growapp.DataBroker;
 import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.database.MyContentProvider;
-import cc.growapp.growapp.services.BackgroundService;
 
 
 public class PrefCommonActivity extends AppCompatActivity
@@ -93,16 +90,24 @@ public class PrefCommonActivity extends AppCompatActivity
                 saved_all_notify=(cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_ALL_NOTIFY))!=0);
 
 
+
+                Log.d(LOG_TAG,"All notify: "+saved_all_notify);
+                all_notify = (CheckBox) findViewById(R.id.cb_notify_all);
+                if(saved_all_notify)all_notify.setChecked(true); else all_notify.setChecked(false);
+
+                if(saved_sound==null) {
+                    Uri default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    saved_sound=String.valueOf(default_sound_uri);
+                }
+
                 //Need, if nothing was changed
                 period=saved_period;
                 sound=saved_sound;
                 vibrator_type=saved_vibrator_type;
                 color=saved_color;
 
-                Log.d(LOG_TAG,"All notify: "+saved_all_notify);
-                all_notify = (CheckBox) findViewById(R.id.cb_notify_all);
-                if(saved_all_notify)all_notify.setChecked(true); else all_notify.setChecked(false);
-                String ringtone_title = RingtoneManager.getRingtone(this,Uri.parse(saved_sound)).getTitle(this);
+                String ringtone_title = RingtoneManager.getRingtone(this, Uri.parse(saved_sound)).getTitle(this);
+
 
                 String color_name="Green";
                 switch (saved_color){

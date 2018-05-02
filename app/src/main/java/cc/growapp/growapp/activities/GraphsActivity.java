@@ -37,6 +37,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import cc.growapp.growapp.DataBroker;
+import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.R;
 
@@ -61,8 +62,6 @@ public class GraphsActivity extends AppCompatActivity implements
 
     String hash, controller_id;
 
-    // Database Helper
-    MyContentProvider db;
 
     // Progress Dialog
     private ProgressDialog pDialog;
@@ -80,6 +79,7 @@ public class GraphsActivity extends AppCompatActivity implements
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle(getString(R.string.graphs));
         }
+
 
 
         setContentView(R.layout.activity_graphs);
@@ -204,8 +204,8 @@ public class GraphsActivity extends AppCompatActivity implements
         //Очистим значения
         pDialog.setMessage(getString(R.string.loadingsystemstate));
         pDialog.show();
-
-        new DataBroker.get_graphs_data(this).execute(controller_id, hash, param_name, period_name);
+        String saved_hostname = sPref.getString("hostname", GrowappConstants.DEFAULT_HOSTNAME);
+        new DataBroker.get_graphs_data(this).execute(saved_hostname,controller_id, hash, param_name, period_name);
     }
 
     @Override

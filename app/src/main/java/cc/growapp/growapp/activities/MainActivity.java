@@ -142,6 +142,8 @@ public class MainActivity extends AppCompatActivity implements
 
 
 
+
+
         RelativeLayout rl = (RelativeLayout) findViewById(R.id.main_activity_layout);
 
         wcan1 = (FrameLayout) findViewById(R.id.frgm_wcan1);
@@ -324,8 +326,8 @@ public class MainActivity extends AppCompatActivity implements
 
     private void launch_set_action(String action) {
         actionField.setText(action);
-
-        new DataBroker.set_action(this).execute(controller_id, hash, action);
+        String saved_hostname = sPref.getString("hostname", GrowappConstants.DEFAULT_HOSTNAME);
+        new DataBroker.set_action(this).execute(saved_hostname,controller_id, hash, action);
     }
 
 
@@ -1027,7 +1029,7 @@ public class MainActivity extends AppCompatActivity implements
             answerField.setText(s);
 
 
-            Intent intent = new Intent(this, BackgroundService.class);
+            Intent intent = new Intent(this,BackgroundService.class);
             intent.putExtra("controller_id",controller_id);
             intent.putExtra("emergency_call", true);
             startService(intent);

@@ -1,36 +1,18 @@
 package cc.growapp.growapp.activities;
 
 
-import android.app.AlertDialog;
-import android.content.ContentUris;
-import android.content.ContentValues;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Parcelable;
-import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.MenuItem;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
 import android.widget.GridLayout;
-import android.widget.RadioButton;
-import android.widget.RelativeLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import cc.growapp.growapp.DataBroker;
 import cc.growapp.growapp.GrowappConstants;
 import cc.growapp.growapp.R;
 import cc.growapp.growapp.database.MyContentProvider;
-import cc.growapp.growapp.services.BackgroundService;
 
 
 public class PrefAWActivity extends AppCompatActivity

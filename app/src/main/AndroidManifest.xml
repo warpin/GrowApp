@@ -104,6 +104,11 @@
         </activity>
 
 
+        <provider
+            android:authorities="cc.growapp.growapp.providers.database"
+            android:name=".database.MyContentProvider"
+            android:exported="false">
+        </provider>
 
         <receiver android:name=".receivers.BootAndUpdateReceiver">
             <intent-filter>
@@ -118,13 +123,9 @@
             android:name=".services.BackgroundService"
             android:enabled="true"
             android:exported="false"
+            android:process=".growapp_service"
 
-        />
-        <provider
-            android:authorities="cc.growapp.growapp.providers.database"
-            android:name=".database.MyContentProvider"
-            android:exported="false">
-        </provider>
+            />
     </application>
 
 </manifest>
