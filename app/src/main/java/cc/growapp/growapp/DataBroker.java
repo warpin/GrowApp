@@ -55,6 +55,9 @@ public class DataBroker  {
                 String url= "http://"+get_params[0]+"/core/login.php";
                 params.put("username", get_params[1]);
                 params.put("password", get_params[2]);
+                //Log.d(LOG_TAG,"Authentication string: " + url);
+                //Log.d(LOG_TAG,"get_params[1] " + get_params[1]);
+                //Log.d(LOG_TAG,"get_params[2] " + get_params[2]);
                 return downloadUrl(url,params);
             } catch (IOException e) {
                 return "Unable to retrieve web page. URL may be invalid.";
@@ -66,12 +69,11 @@ public class DataBroker  {
             Log.d(LOG_TAG, "Http answer = " + result);
             params.clear();
 
-            String user_hash=result.trim();
+            String user_hash = result.trim();
             //Если длина хеша правильная (32)
-            if(user_hash.length()==32){
+            if (user_hash.length() == 32) {
                 listener.onAuthCompleteMethod(user_hash);
             } else listener.onAuthCompleteMethod(null);
-
         }
     }
     // ---------------------------------------------------------------------------------------------
@@ -486,34 +488,48 @@ public class DataBroker  {
             //params.put("password", pass1_data);
             //params.put("email", email_data);
 
-            StringBuilder getData = new StringBuilder();
+            StringBuilder Data = new StringBuilder();
 
             for (Map.Entry<String,Object>  param : params.entrySet()) {
-                if (getData.length() != 0) getData.append('&');
-                getData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
-                getData.append('=');
-                getData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+                if (Data.length() != 0) Data.append('&');
+                Data.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+                Data.append('=');
+                Data.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
             }
 
-            byte[] getDataBytes = getData.toString().getBytes("UTF-8");
+            byte[] DataBytes = Data.toString().getBytes("UTF-8");
+
+            myurl=myurl + "?" + Data.toString();
+            Log.d(LOG_TAG,"Final URL: " + myurl);
 
             URL url = new URL(myurl);
+
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(3000 /* milliseconds */);
-            conn.setConnectTimeout(6000 /* milliseconds */);
-            //conn.setRequestMethod("GET");
+
             conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            conn.setRequestProperty("Content-Length", String.valueOf(getDataBytes.length));
-            conn.setDoInput(true);
-            conn.setDoOutput(true);
-            conn.getOutputStream().write(getDataBytes);
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            //conn.setReadTimeout(3000 /* milliseconds */);
+            //conn.setConnectTimeout(6000 /* milliseconds */);
+
+            //Below property for POST request
+            //conn.setRequestMethod("POST");
+            //conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            //conn.setDoOutput(true);
+            //conn.setDoInput(true);
+            //conn.setRequestProperty("Content-Length", String.valueOf(DataBytes.length));
+
+            //conn.getOutputStream().write(DataBytes);
 
             // Starts the query
-            conn.connect();
-            //int response = conn.getResponseCode();
-            //Log.d(LOG_TAG, "The response is: " + response);
+            //conn.connect();
+
+            int response_code = conn.getResponseCode();
+            if(response_code != 200)return null;
+            Log.d(LOG_TAG, "The response code is: " + response_code);
             is = conn.getInputStream();
+
+
             //len=is.available();
             //len=1024;
             //Log.d(LOG_TAG, "conn.getInputStream() is: " + is);
@@ -521,6 +537,7 @@ public class DataBroker  {
 
             String contentAsString = readIt(is, buffer_size);
             is.close();
+            //Log.d(LOG_TAG, "contentAsString " + is);
 
             return contentAsString.trim();
 
@@ -533,11 +550,13 @@ public class DataBroker  {
         }
     }
     // Reads an InputStream and converts it to a String.
-    public static String readIt(InputStream stream, int len) throws IOException {
+    private static String readIt(InputStream stream, int len) throws IOException {
         Reader reader;
         reader = new InputStreamReader(stream, "UTF-8");
         char[] buffer = new char[len];
+
         reader.read(buffer);
+        //Log.d(LOG_TAG, "Reader: " + buffer);
         return new String(buffer);
     }
 }
