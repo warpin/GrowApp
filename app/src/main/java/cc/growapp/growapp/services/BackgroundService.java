@@ -5,6 +5,7 @@ import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -16,6 +17,9 @@ import android.graphics.BitmapFactory;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.IBinder;
+import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -67,9 +71,6 @@ public class BackgroundService extends IntentService implements
         super("GrowApp service");
     }
 
-    @Override
-    protected void onHandleIntent(Intent intent) {
-    }
 
     @Override
     public void onCreate() {
@@ -83,16 +84,18 @@ public class BackgroundService extends IntentService implements
         Log.d(LOG_TAG, "Service initialization!");
         nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-
-//        String emergency_ctrl_id = intent.getStringExtra("controller_id");
-//        Boolean emergency_call = intent.getBooleanExtra("emergency_call",false);
-//        intent.removeExtra("emergency_call");
-//        //intent.removeExtra("controller_id");
-
         long current_time =  System.currentTimeMillis();
 
+        Boolean manual_request=false;
+        if(intent.hasExtra("controller_id")) {
+            manual_request=true;
+        }
+        // Короче надо сделать так чтобы сразу запршивалось
 
-        //Запишем в ServiceProvider, для информации, когда запустится сервис
+        Log.d(LOG_TAG,"Manual request: " + manual_request);
+        Log.d(LOG_TAG,"Manual request for controller: " + intent.getStringExtra("controller_id"));
+
+        //Запишем в SP, для информации, когда запустится сервис
         long earliest_time=0;
         long period_in_ms=0;
 
@@ -107,10 +110,9 @@ public class BackgroundService extends IntentService implements
                         if(cursor_pref.moveToFirst()){
                             period = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_PERIOD));
                             period_in_ms=period*1000;
-                            if(intent.hasExtra("emergency_call")) {
-                                if (intent.getBooleanExtra("emergency_call", false) && intent.getStringExtra("controller_id").equals(controller_id))
-                                    period_in_ms = GrowappConstants.short_period * 1000;
-                            }
+
+                            //Подумать
+                            if (manual_request && intent.getStringExtra("controller_id").equals(controller_id))period_in_ms = GrowappConstants.short_period * 1000;
                         }
                         cursor_pref.close();
                     }
@@ -131,7 +133,7 @@ public class BackgroundService extends IntentService implements
                     //1 Если время старта, больше чем текущее время + период
                     long diffrence = Math.abs(current_time - start_time);
 
-                    Log.d(LOG_TAG, "--------------- Processing ------------------");
+                    Log.d(LOG_TAG, "-----------------------------------");
                     Log.d(LOG_TAG, "Controller ID: "+controller_id);
                     Log.d(LOG_TAG, "Controller name: "+ctrl_name);
                     Log.d(LOG_TAG, "Current time: " + new Date(current_time));
@@ -157,18 +159,16 @@ public class BackgroundService extends IntentService implements
 
 
 
-                        Toast.makeText(this, getString(R.string.get_data) +": "+ ctrl_name, Toast.LENGTH_SHORT).show();
+
+                        //Toast.makeText(this, getString(R.string.get_data) +": "+ ctrl_name, Toast.LENGTH_SHORT).show();
                         // -----------------------------------------
 
                         //Запускаем процесс получения данных датчиков
                         sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
                         String hash = sPref.getString("hash", "");
+                        String saved_hostname = sPref.getString("hostname", GrowappConstants.DEFAULT_HOSTNAME);
 
-                        if(intent.hasExtra("emergency_call")) {
-                            if(!(intent.getBooleanExtra("emergency_call",false) && intent.getStringExtra("controller_id").equals(controller_id)))
-                                new DataBroker.get_system_state(this).execute(String.valueOf(controller_id), hash);
-                        }
-
+                        new DataBroker.get_system_state(this).execute(saved_hostname,String.valueOf(controller_id), hash);
 
                     } else Log.d(LOG_TAG, "Skipping the device: "+ controller_id);
 
@@ -183,7 +183,7 @@ public class BackgroundService extends IntentService implements
 
                 }while (cursor_local.moveToNext());
                 cursor_local.close();
-            }/*else{
+            }else{
 
                 Cursor cursor = getContentResolver().query(MyContentProvider.CTRLS_CONTENT_URI, null, null, null, null);
                 if (cursor != null) {
@@ -209,26 +209,40 @@ public class BackgroundService extends IntentService implements
                     cursor.close();
                 }
 
-            }*/
+            }
             AlarmManager alarm = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
             PendingIntent pending = PendingIntent.getService(this, 0, new Intent(this, BackgroundService.class) , PendingIntent.FLAG_CANCEL_CURRENT);
 
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                alarm.setWindow(AlarmManager.RTC_WAKEUP,1000,60000,pending);
-                alarm.setExact(AlarmManager.RTC_WAKEUP, start_time, pending);
-            } else alarm.set(AlarmManager.RTC_WAKEUP, start_time, pending);
+                if (alarm != null) {
+                    alarm.setWindow(AlarmManager.RTC_WAKEUP,1000,60000,pending);
+                    alarm.setExact(AlarmManager.RTC_WAKEUP, start_time, pending);
+                }
+
+            } else if (alarm != null) {
+                alarm.set(AlarmManager.RTC_WAKEUP, start_time, pending);
+            }
             //Запишем в SP, для информации, когда запустится сервис
             Log.d(LOG_TAG, "Scheduled service start time: " + new Date(start_time));
         }
 
-
+        stopSelf(startId);
         //sPref = getSharedPreferences(GrowappConstants.APP_PREFERENCES, MODE_PRIVATE);
 
         return START_STICKY;
     }
 
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 
+    @Override
+    protected void onHandleIntent(@Nullable Intent intent) {
+
+    }
 
 
     void sendNotif(String ctrl_id, String message) {
@@ -248,8 +262,15 @@ public class BackgroundService extends IntentService implements
         if(cursor_pref!=null) {
             cursor_pref.moveToFirst();
             sound = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_SOUND));
+            if(sound==null){
+                sound = String.valueOf(Settings.System.DEFAULT_NOTIFICATION_URI);
+            }
             vibrator_type = cursor_pref.getString(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_VIBRATE));
             color = cursor_pref.getInt(cursor_pref.getColumnIndexOrThrow(MyContentProvider.KEY_PREF_COLOR));
+
+            Log.d(LOG_TAG,"Notification sound: "+sound);
+            Log.d(LOG_TAG,"Notification vibrator: "+vibrator_type);
+            Log.d(LOG_TAG,"Notification color: "+color);
 
             ringtone_title = RingtoneManager.getRingtone(this,Uri.parse(sound)).getTitle(this);
 
@@ -319,10 +340,7 @@ public class BackgroundService extends IntentService implements
         }
 
 
-
-
     }
-
 
 
     @Override

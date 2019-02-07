@@ -142,12 +142,10 @@ public class MainActivity extends AppCompatActivity implements
 
 
 
+        RelativeLayout rl = findViewById(R.id.main_activity_layout);
 
-
-        RelativeLayout rl = (RelativeLayout) findViewById(R.id.main_activity_layout);
-
-        wcan1 = (FrameLayout) findViewById(R.id.frgm_wcan1);
-        wcan2 = (FrameLayout) findViewById(R.id.frgm_wcan2);
+        wcan1 = findViewById(R.id.frgm_wcan1);
+        wcan2 = findViewById(R.id.frgm_wcan2);
 
         tv_wcan1_type = new TextView(this);
         tv_wcan2_type = new TextView(this);
@@ -163,8 +161,8 @@ public class MainActivity extends AppCompatActivity implements
         wcan2.addView(tv_wcan2_type);
 
 
-        actionField = (TextView) findViewById(R.id.tv_main_action);
-        answerField = (TextView) findViewById(R.id.tv_main_answer);
+        actionField = findViewById(R.id.tv_main_action);
+        answerField = findViewById(R.id.tv_main_answer);
 
         rl.setOnTouchListener(this);
 
@@ -180,8 +178,8 @@ public class MainActivity extends AppCompatActivity implements
 
 
 
-        Switch relay1 = (Switch) findViewById(R.id.tbtn_sw1);
-        Switch relay2 = (Switch) findViewById(R.id.tbtn_sw2);
+        Switch relay1 = findViewById(R.id.tbtn_sw1);
+        Switch relay2 = findViewById(R.id.tbtn_sw2);
 
         // ------------------------------ Обработчик переключателя №1 ---------------------------
         relay1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -225,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements
         });
         // -----------------------------------------------------------------------------------------
         // -------------------------------- Спиннер контроллеров -----------------------------------
-        final Spinner spinner = (Spinner) findViewById(R.id.ctrl_spinner);
+        final Spinner spinner = findViewById(R.id.ctrl_spinner);
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
@@ -276,7 +274,7 @@ public class MainActivity extends AppCompatActivity implements
         // -----------------------------------------------------------------------------------------
     }
     public void populateSpinner(){
-        Spinner spinner = (Spinner) findViewById(R.id.ctrl_spinner);
+        Spinner spinner = findViewById(R.id.ctrl_spinner);
         Log.d(LOG_TAG, "Spinner [0]=" + ctrl_names_data[0]);
         // адаптер
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ctrl_names_data);
@@ -403,16 +401,16 @@ public class MainActivity extends AppCompatActivity implements
         //TextView water_level_label = (TextView) findViewById(R.id.textView14);
         //TextView water_level = (TextView) findViewById(R.id.tv_wl_data);
 
-        TextView date = (TextView) findViewById(R.id.tv_date);
-        Switch relay1 = (Switch) findViewById(R.id.tbtn_sw1);
-        Switch relay2 = (Switch) findViewById(R.id.tbtn_sw2);
+        TextView date = findViewById(R.id.tv_date);
+        Switch relay1 = findViewById(R.id.tbtn_sw1);
+        Switch relay2 = findViewById(R.id.tbtn_sw2);
 
-        FrameLayout light = (FrameLayout) findViewById(R.id.frgm_light);
-        FrameLayout t = (FrameLayout) findViewById(R.id.frgm_temp);
-        FrameLayout h = (FrameLayout) findViewById(R.id.frgm_hum);
-        FrameLayout pot1 = (FrameLayout) findViewById(R.id.frgm_pot1);
-        FrameLayout pot2 = (FrameLayout) findViewById(R.id.frgm_pot2);
-        FrameLayout co2 = (FrameLayout) findViewById(R.id.frgm_co2);
+        FrameLayout light = findViewById(R.id.frgm_light);
+        FrameLayout t = findViewById(R.id.frgm_temp);
+        FrameLayout h = findViewById(R.id.frgm_hum);
+        FrameLayout pot1 = findViewById(R.id.frgm_pot1);
+        FrameLayout pot2 = findViewById(R.id.frgm_pot2);
+        FrameLayout co2 = findViewById(R.id.frgm_co2);
 
 
 
@@ -906,11 +904,11 @@ public class MainActivity extends AppCompatActivity implements
 
         AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
         LayoutInflater inflater = this.getLayoutInflater();
-        RelativeLayout rl = (RelativeLayout) findViewById(R.id.main_activity_layout);
+        RelativeLayout rl = findViewById(R.id.main_activity_layout);
         final View dialogView = inflater.inflate(R.layout.dialog_edit_ctrl_name, rl,false);
         dialogBuilder.setView(dialogView);
 
-        final EditText edt = (EditText) dialogView.findViewById(R.id.et_dev_id);
+        final EditText edt = dialogView.findViewById(R.id.et_dev_id);
 
         dialogBuilder.setTitle("Изменение названия");
         dialogBuilder.setMessage("Новое название");
@@ -1003,10 +1001,8 @@ public class MainActivity extends AppCompatActivity implements
         return old_main_data;
     }
 
-
-
-            public class MainObserver extends ContentObserver {
-        public MainObserver(Handler handler) {
+    private class MainObserver extends ContentObserver {
+        MainObserver(Handler handler) {
             super(handler);
         }
 
@@ -1031,7 +1027,6 @@ public class MainActivity extends AppCompatActivity implements
 
             Intent intent = new Intent(this,BackgroundService.class);
             intent.putExtra("controller_id",controller_id);
-            intent.putExtra("emergency_call", true);
             startService(intent);
             last_refresh_time=System.currentTimeMillis();
 

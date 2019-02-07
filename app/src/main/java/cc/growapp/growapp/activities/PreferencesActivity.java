@@ -68,8 +68,6 @@ public class PreferencesActivity extends AppCompatActivity implements
         Log.d(LOG_TAG, "Resuming PrefActivity");
         super.onResume();
 
-
-
         Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI + "/" + controller_id), null, null, null, null);
         if(cursor_pref!=null){
             if(cursor_pref.moveToFirst()){
@@ -189,7 +187,7 @@ public class PreferencesActivity extends AppCompatActivity implements
     @Override
     public void onSaveUserProfileCompleteMethod(String s) {
         if(s!=null){
-            Toast.makeText(this,R.string.save,Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,R.string.saved,Toast.LENGTH_SHORT).show();
         }
     }
 }

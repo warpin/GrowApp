@@ -28,7 +28,8 @@
     <string name="max">Макс</string>
     <string name="notification">Уведомление</string>
     <string name="cancel">Отмена</string>
-    <string name="save">Сохранить</string>
+    <string name="save">Сохраняю настройки</string>
+    <string name="saved">Настройки успешно сохранены</string>
     <string name="notif_period">Период уведомлений:</string>
     <string name="min1">1 минута</string>
     <string name="min15">15 минут</string>

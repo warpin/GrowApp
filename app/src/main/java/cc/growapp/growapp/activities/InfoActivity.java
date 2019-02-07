@@ -18,6 +18,8 @@ import cc.growapp.growapp.R;
 import cc.growapp.growapp.database.MyContentProvider;
 import cc.growapp.growapp.services.BackgroundService;
 
+import static cc.growapp.growapp.activities.MainActivity.active;
+
 
 public class InfoActivity extends AppCompatActivity  {
 
@@ -54,8 +56,8 @@ public class InfoActivity extends AppCompatActivity  {
 
 
 
-        tv_serviceStartAt = (TextView) findViewById(R.id.info_tv_serviceStartTime);
-        tv_serviceperiod = (TextView) findViewById(R.id.info_tv_period);
+        tv_serviceStartAt = findViewById(R.id.info_tv_serviceStartTime);
+        tv_serviceperiod = findViewById(R.id.info_tv_period);
 
 
         Cursor cursor_pref = getContentResolver().query(Uri.parse(MyContentProvider.PREF_CONTENT_URI + "/" + controller_id), null, null, null, null);
@@ -72,10 +74,6 @@ public class InfoActivity extends AppCompatActivity  {
                 case "7200":tv_serviceperiod.setText(getString(R.string.hour2));break;
             }
         }
-
-
-
-
 
 
 
@@ -137,7 +135,7 @@ public class InfoActivity extends AppCompatActivity  {
 
     public void ServiceStart(View view) {
 
-        Log.d(LOG_TAG,"Starting BG_service.");
+        Log.d(LOG_TAG,"Starting growapp_service.");
         Intent intent = new Intent(this, BackgroundService.class);
         startService(intent);
     }
@@ -149,17 +147,9 @@ public class InfoActivity extends AppCompatActivity  {
         }
 
         @Override
-        public void onChange(boolean selfChange) {
-            this.onChange(selfChange,null);
-        }
-
-        @Override
         public void onChange(boolean selfChange, Uri uri) {
-            //Write your code here
-            //Whatever is written here will be
-            //executed whenever a change is made
+            Log.d(LOG_TAG, "Change detected!");
             DataPut();
-
 
         }
 
